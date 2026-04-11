@@ -4,7 +4,7 @@
   "description": "Generate digrams of your features before vibing them. Get more control of your code",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.109.0"
+    "vscode": "^1.110.0"
   },
   "categories": [
     "Other"
