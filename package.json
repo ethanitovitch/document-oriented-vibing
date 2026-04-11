@@ -43,7 +43,8 @@
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "deploy": "vsce package --no-dependencies && code --install-extension document-oriented-vibing-*.vsix && echo 'Installed! Reload Cursor to activate.'"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

@@ -34,7 +34,16 @@ export function activate(context: vscode.ExtensionContext) {
 		() => openSettingsPanel(context),
 	);
 
-	context.subscriptions.push(homeDisposable, newFeatureDisposable, openFeatureDisposable, settingsDisposable);
+	const featureWatcher = vscode.workspace.createFileSystemWatcher('**/.features/*.md');
+	const autoOpen = (uri: vscode.Uri) => {
+		const fileName = uri.fsPath.split(/[/\\]/).pop();
+		if (fileName && !previewPanels.has(fileName)) {
+			void openFeature(context, fileName);
+		}
+	};
+	featureWatcher.onDidCreate(autoOpen);
+
+	context.subscriptions.push(homeDisposable, newFeatureDisposable, openFeatureDisposable, settingsDisposable, featureWatcher);
 }
 
 export function deactivate() {}
