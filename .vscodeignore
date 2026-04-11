@@ -3,10 +3,17 @@
 out/**
 node_modules/**
 src/**
+.pnpm-store/**
+.sfdx/**
 .gitignore
 .yarnrc
 esbuild.js
 vsc-extension-quickstart.md
+pnpm-lock.yaml
+pnpm-workspace.yaml
+VIP
+invalid
+retry
 **/tsconfig.json
 **/eslint.config.mjs
 **/*.map
