@@ -20,7 +20,7 @@ When you vibe-code with an LLM, you have no idea what it's actually building. DO
 
 ```bash
 # Clone and build
-git clone https://github.com/YOUR_USERNAME/document-oriented-vibing.git
+git clone https://github.com/ethanitovitch/document-oriented-vibing.git
 cd document-oriented-vibing
 pnpm install
 node esbuild.js
