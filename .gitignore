@@ -1,0 +1,11 @@
+node_modules/
+.pnpm-store/
+dist/
+dist-webview/
+out/
+*.vsix
+.vscode-test/
+.sfdx/
+VIP/
+invalid/
+retry/
