@@ -5,14 +5,14 @@ const vscode = typeof acquireVsCodeApi === 'function'
 	: { postMessage: () => {} };
 
 const palette = {
-	bg: '#f4f6fb',
-	surface: '#ffffff',
-	surface2: '#f8faff',
-	text: '#1b2331',
-	muted: '#5a667c',
-	border: '#d6dcea',
-	button: '#2f6fed',
-	buttonText: '#ffffff',
+	bg: 'var(--vscode-editor-background, #f4f6fb)',
+	surface: 'var(--vscode-sideBar-background, #ffffff)',
+	surface2: 'var(--vscode-editorWidget-background, #f8faff)',
+	text: 'var(--vscode-editor-foreground, #1b2331)',
+	muted: 'var(--vscode-descriptionForeground, #5a667c)',
+	border: 'var(--vscode-editorWidget-border, #d6dcea)',
+	button: 'var(--vscode-button-background, #2f6fed)',
+	buttonText: 'var(--vscode-button-foreground, #ffffff)',
 };
 
 export function SettingsApp() {
@@ -42,7 +42,15 @@ export function SettingsApp() {
 	}, []);
 
 	return (
-		<div style={{ background: palette.bg, color: palette.text, minHeight: '100vh', padding: 20, boxSizing: 'border-box' }}>
+		<div style={{
+			background: palette.bg,
+			color: palette.text,
+			minHeight: '100vh',
+			padding: 20,
+			boxSizing: 'border-box',
+			fontFamily: 'var(--vscode-font-family, system-ui, -apple-system, sans-serif)',
+			fontSize: 'var(--vscode-font-size, 13px)',
+		}}>
 			<div style={{ maxWidth: 860, margin: '0 auto', display: 'grid', gap: 12 }}>
 				<div style={panelStyle()}>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -98,6 +106,7 @@ function rowStyle() {
 		gap: 10,
 		alignItems: 'center',
 		padding: '6px 0',
+		color: palette.text,
 	};
 }
 

@@ -15,6 +15,7 @@ When you vibe-code with an LLM, you have no idea what it's actually building. DO
 2. Review the diagram — see every component, file path, and data flow. Iterate until you're happy.
 3. Tell your LLM `+show auth system` — it builds the feature, then shows you the diagram with real file paths.
 4. Click any node to jump to the code. Hover for details.
+5. Tell your LLM `+review` — it captures the current git diff and opens it in DOV.
 
 ## Install
 
@@ -29,18 +30,18 @@ node esbuild.js
 pnpm add -g @vscode/vsce
 vsce package --no-dependencies
 
-# Install in VS Code / Cursor
-code --install-extension document-oriented-vibing-*.vsix
+# Install in your VS Code-compatible editor
+code --install-extension document-oriented-vibing-0.0.1.vsix --force
 ```
 
 ## Quick Start
 
-1. Open any project in VS Code / Cursor
+1. Open any project in VS Code
 2. Run `DOV: Home` from the command palette (`Ctrl/Cmd+Shift+P`)
 3. Create a new feature — this creates a `.features/` folder with a `.md` file
 4. Edit the markdown file with a Mermaid diagram, or let your LLM do it
 
-The extension automatically injects instructions into your project's `CLAUDE.md` so your LLM knows the format.
+The extension automatically injects instructions into your project's `CLAUDE.md`, adds a small Codex `AGENTS.md` pointer, and installs a repo-scoped DOV skill under `.agents/skills/`.
 
 ## Workflow Modes
 
@@ -50,8 +51,9 @@ Prefix your prompt to the LLM with a mode:
 |------|-------------|
 | `+plan` | LLM creates the diagram with placeholder file paths. No code written. Review and iterate first. |
 | `+show` | LLM writes the actual code, then creates the diagram with real file paths. |
+| `+review` | LLM opens the DOV capture URI; the extension writes and opens the review diff. |
 
-Default is `+plan` if you don't specify.
+No mode writes files unless the prompt explicitly asks for it.
 
 ### Example
 
@@ -102,8 +104,9 @@ Authenticate with email/password, return a JWT.
 - **Hover tooltips** — `## Details` section adds per-node descriptions on hover
 - **Scroll to zoom** — Ctrl/Cmd + scroll to zoom in/out on the diagram
 - **Any Mermaid diagram** — flowchart, sequence, class, state, ER, journey, gantt
-- **LLM-native** — auto-injects instructions into `CLAUDE.md` so your LLM knows the format
-- **Auto-open** — LLMs can run a command to open the diagram after generating it
+- **Review workflow** — `+review` quickly captures and opens raw git diff output
+- **LLM-native** — auto-injects Claude instructions and a repo-scoped Codex skill so your LLM knows the format
+- **Auto-open** — new feature diagrams and review files open when the LLM creates them
 
 ## Commands
 
@@ -112,6 +115,20 @@ Authenticate with email/password, return a JWT.
 | `DOV: Home` | Open the home screen with all features |
 | `DOV: Quick New Feature` | Create a new feature file |
 | `DOV: Open Feature` | Open a specific feature diagram |
+| `DOV: +review` | Open the latest review diff |
+| `DOV: Capture Codex Review` | Capture files written by the previous Codex turn into a review diff |
+
+## Agent Review Command
+
+Agents should open DOV's URI handler for `+review`:
+
+```bash
+code --open-url "vscode://<installed-extension-id>/captureReview?name=auth-review.diff&threadId=$CODEX_THREAD_ID"
+```
+
+This opens a VS Code URI and requires GUI access. If running in a sandbox, agents should request outside-sandbox/escalated execution up front. Agents should not treat exit code 0 alone as proof that the extension opened, especially if Electron/macOS stderr includes messages such as `task_name_for_pid`. After running the URI command, agents should verify `.reviews/<name>.diff` exists before saying the review opened.
+
+The editor routes the URI to the extension. The extension creates `.reviews/` if needed, writes `.reviews/auth-review.diff`, and opens the review panel.
 
 ## How It Works Under the Hood
 
@@ -120,11 +137,23 @@ Authenticate with email/password, return a JWT.
 ├── schema.md          # Auto-generated format reference
 ├── user-login.md      # Your feature diagrams
 └── order-pipeline.md
+
+.reviews/
+└── auth-review.diff   # Raw git diff output from +review
+
+.agents/
+└── skills/
+    └── document-oriented-vibing/
+        ├── SKILL.md
+        ├── agents/openai.yaml
+        └── references/
+            ├── schema.md
+            └── review-schema.md
 ```
 
-The extension watches `.features/*.md` for changes and renders them as interactive Mermaid diagrams in a webview panel. Node labels containing file paths become clickable links. The `## Details` section maps node names to hover tooltips.
+The extension watches `.features/*.md` for changes and renders them as interactive diagrams in a webview panel. It also watches `.reviews/*.diff` and `.reviews/*.json` and opens a review page for the latest review artifact. Diff review approvals are saved to a sibling `.state.json` file.
 
-When activated, DOV checks your `CLAUDE.md` for its instruction block (versioned with start/end markers) and adds or updates it automatically.
+From `DOV: Home`, DOV checks your `CLAUDE.md`, Codex `AGENTS.md` pointer, and repo-scoped DOV skill for its versioned markers. The setup button adds or updates any missing pieces.
 
 ## Contributing
 

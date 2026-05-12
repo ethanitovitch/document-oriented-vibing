@@ -3,13 +3,16 @@
   "displayName": "document-oriented-vibing",
   "description": "Generate digrams of your features before vibing them. Get more control of your code",
   "version": "0.0.1",
+  "publisher": "ethanitovitch",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onUri"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -28,6 +31,14 @@
       {
         "command": "document-oriented-vibing.settings",
         "title": "DOV: Settings"
+      },
+      {
+        "command": "document-oriented-vibing.review",
+        "title": "DOV: +review"
+      },
+      {
+        "command": "document-oriented-vibing.captureReview",
+        "title": "DOV: Capture Codex Review"
       }
     ]
   },
@@ -44,7 +55,7 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vscode-test",
-    "deploy": "vsce package --no-dependencies && code --install-extension document-oriented-vibing-*.vsix && echo 'Installed! Reload Cursor to activate.'"
+    "deploy": "vsce package --no-dependencies && code --install-extension document-oriented-vibing-0.0.1.vsix --force && echo 'Installed! Reload your editor to activate.'"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -62,6 +73,7 @@
     "dompurify": "^3.3.3",
     "mermaid": "^11.4.1",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "shiki": "^4.0.2"
   }
 }

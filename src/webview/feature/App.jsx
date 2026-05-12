@@ -16,20 +16,23 @@ function isDarkTheme() {
 }
 
 const palette = {
-	bg: '#f4f6fb',
-	bgDark: '#1e1e1e',
-	surface: '#ffffff',
-	surfaceDark: '#252526',
-	surface2: '#f8faff',
-	surface2Dark: '#2d2d2d',
-	text: '#1b2331',
-	textDark: '#d4d4d4',
-	muted: '#5a667c',
-	mutedDark: '#888',
-	border: '#d6dcea',
-	borderDark: '#3e3e42',
-	button: '#2f6fed',
-	buttonText: '#ffffff',
+	bg: 'var(--vscode-editor-background, #f4f6fb)',
+	bgDark: 'var(--vscode-editor-background, #1e1e1e)',
+	surface: 'var(--vscode-sideBar-background, #ffffff)',
+	surfaceDark: 'var(--vscode-sideBar-background, #252526)',
+	surface2: 'var(--vscode-editorWidget-background, #f8faff)',
+	surface2Dark: 'var(--vscode-editorWidget-background, #2d2d2d)',
+	text: 'var(--vscode-editor-foreground, #1b2331)',
+	textDark: 'var(--vscode-editor-foreground, #d4d4d4)',
+	muted: 'var(--vscode-descriptionForeground, #5a667c)',
+	mutedDark: 'var(--vscode-descriptionForeground, #888)',
+	border: 'var(--vscode-editorWidget-border, #d6dcea)',
+	borderDark: 'var(--vscode-editorWidget-border, #3e3e42)',
+	button: 'var(--vscode-button-background, #2f6fed)',
+	buttonText: 'var(--vscode-button-foreground, #ffffff)',
+	errorBg: 'var(--vscode-inputValidation-errorBackground, #fef2f2)',
+	errorBorder: 'var(--vscode-inputValidation-errorBorder, #fecaca)',
+	errorText: 'var(--vscode-inputValidation-errorForeground, #b91c1c)',
 };
 
 function p(dark, light, darkVal) { return dark ? darkVal : light; }
@@ -347,11 +350,11 @@ function MermaidPreview({ code, detailsMap }) {
 					margin: '12px 16px 0',
 					padding: '8px 12px',
 					borderRadius: 6,
-					background: '#fef2f2',
-					border: '1px solid #fecaca',
-					color: '#b91c1c',
+					background: palette.errorBg,
+					border: `1px solid ${palette.errorBorder}`,
+					color: palette.errorText,
 					fontSize: 12,
-					fontFamily: 'monospace',
+					fontFamily: 'var(--vscode-editor-font-family, monospace)',
 					whiteSpace: 'pre-wrap',
 					lineHeight: 1.5,
 				}}>
@@ -424,7 +427,8 @@ export function FeatureApp() {
 			flexDirection: 'column',
 			background: bg,
 			color: text,
-			fontFamily: 'system-ui, -apple-system, sans-serif',
+			fontFamily: 'var(--vscode-font-family, system-ui, -apple-system, sans-serif)',
+			fontSize: 'var(--vscode-font-size, 13px)',
 			overflow: 'hidden',
 			...cssVars,
 		}}>
@@ -503,4 +507,3 @@ export function FeatureApp() {
 		</div>
 	);
 }
-

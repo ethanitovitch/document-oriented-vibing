@@ -5,24 +5,46 @@ const vscode = typeof acquireVsCodeApi === 'function'
 	: { postMessage: () => {} };
 
 const palette = {
-	bg: '#f4f6fb',
-	surface: '#ffffff',
-	surface2: '#f8faff',
-	text: '#1b2331',
-	muted: '#5a667c',
-	border: '#d6dcea',
-	button: '#2f6fed',
-	buttonText: '#ffffff',
+	bg: 'var(--vscode-editor-background, #f4f6fb)',
+	surface: 'var(--vscode-sideBar-background, #ffffff)',
+	surface2: 'var(--vscode-editorWidget-background, #f8faff)',
+	text: 'var(--vscode-editor-foreground, #1b2331)',
+	muted: 'var(--vscode-descriptionForeground, #5a667c)',
+	border: 'var(--vscode-editorWidget-border, #d6dcea)',
+	button: 'var(--vscode-button-background, #2f6fed)',
+	buttonText: 'var(--vscode-button-foreground, #ffffff)',
+	danger: 'var(--vscode-testing-iconFailed, #b91c1c)',
+	warningBg: 'var(--vscode-inputValidation-warningBackground, #fffbe6)',
+	warningBorder: 'var(--vscode-inputValidation-warningBorder, #f0d060)',
 };
+
+function normalizeFeature(feature) {
+	if (typeof feature === 'string') {
+		return { name: feature, ageLabel: '' };
+	}
+	if (feature && typeof feature.name === 'string') {
+		return {
+			name: feature.name,
+			ageLabel: typeof feature.ageLabel === 'string' ? feature.ageLabel : '',
+		};
+	}
+	return null;
+}
 
 export function HomeApp() {
 	const [statusText, setStatusText] = useState('Loading...');
 	const [features, setFeatures] = useState([]);
+	const [reviews, setReviews] = useState([]);
 	const [selectedFeature, setSelectedFeature] = useState('');
+	const [selectedReview, setSelectedReview] = useState('');
 	const [searchQuery, setSearchQuery] = useState('');
+	const [reviewSearchQuery, setReviewSearchQuery] = useState('');
 	const [listOpen, setListOpen] = useState(false);
+	const [reviewListOpen, setReviewListOpen] = useState(false);
 	const [featuresFolderExists, setFeaturesFolderExists] = useState(false);
+	const [reviewCount, setReviewCount] = useState(0);
 	const listRef = useRef(null);
+	const reviewListRef = useRef(null);
 	const [hasLlmInstructions, setHasLlmInstructions] = useState(true);
 
 	useEffect(() => {
@@ -34,21 +56,33 @@ export function HomeApp() {
 			if (typeof message.statusText === 'string') {
 				setStatusText(message.statusText);
 			}
-			const nextFeatures = Array.isArray(message.features) ? message.features : [];
+			const nextFeatures = Array.isArray(message.features)
+				? message.features.map(normalizeFeature).filter(Boolean)
+				: [];
+			const nextReviews = Array.isArray(message.reviews)
+				? message.reviews.map(normalizeFeature).filter(Boolean)
+				: [];
 			setFeatures(nextFeatures);
+			setReviews(nextReviews);
 			setFeaturesFolderExists(Boolean(message.featuresFolderExists));
 			setHasLlmInstructions(Boolean(message.hasLlmInstructions));
+			setReviewCount(typeof message.reviewCount === 'number' ? message.reviewCount : 0);
 			if (nextFeatures.length === 0) {
 				setSelectedFeature('');
-			} else if (!nextFeatures.includes(selectedFeature)) {
-				setSelectedFeature(nextFeatures[0]);
+			} else if (!nextFeatures.some((feature) => feature.name === selectedFeature)) {
+				setSelectedFeature(nextFeatures[0].name);
+			}
+			if (nextReviews.length === 0) {
+				setSelectedReview('');
+			} else if (!nextReviews.some((review) => review.name === selectedReview)) {
+				setSelectedReview(nextReviews[0].name);
 			}
 		};
 
 		window.addEventListener('message', handler);
 		vscode.postMessage({ action: 'ready' });
 		return () => window.removeEventListener('message', handler);
-	}, [selectedFeature]);
+	}, [selectedFeature, selectedReview]);
 
 	const createFeaturesFolder = () => {
 		vscode.postMessage({ action: 'createFeaturesFolder' });
@@ -58,6 +92,11 @@ export function HomeApp() {
 	const refreshFeatures = () => {
 		vscode.postMessage({ action: 'refreshFeatures' });
 		setStatusText('Refreshing features list...');
+	};
+
+	const removeOldReviews = () => {
+		vscode.postMessage({ action: 'removeOldReviews' });
+		setStatusText('Removing old reviews...');
 	};
 
 	const openNewFeature = () => {
@@ -74,9 +113,18 @@ export function HomeApp() {
 		setStatusText(`Opening ${selectedFeature}...`);
 	};
 
+	const openReview = () => {
+		if (!selectedReview) {
+			setStatusText('Select a review first.');
+			return;
+		}
+		vscode.postMessage({ action: 'openReview', reviewName: selectedReview });
+		setStatusText(`Opening ${selectedReview}...`);
+	};
+
 	const addLlmInstructions = () => {
 		vscode.postMessage({ action: 'addLlmInstructions' });
-		setStatusText('Adding instructions to CLAUDE.md...');
+		setStatusText('Adding instructions and Codex skill...');
 	};
 
 	const filteredFeatures = useMemo(() => {
@@ -84,10 +132,19 @@ export function HomeApp() {
 		if (!q) {
 			return features;
 		}
-		return features.filter((f) => f.toLowerCase().includes(q));
+		return features.filter((feature) => feature.name.toLowerCase().includes(q));
 	}, [features, searchQuery]);
 
-	const selectAndOpen = (name) => {
+	const filteredReviews = useMemo(() => {
+		const q = reviewSearchQuery.trim().toLowerCase();
+		if (!q) {
+			return reviews;
+		}
+		return reviews.filter((review) => review.name.toLowerCase().includes(q));
+	}, [reviews, reviewSearchQuery]);
+
+	const selectAndOpen = (feature) => {
+		const name = typeof feature === 'string' ? feature : feature.name;
 		setSelectedFeature(name);
 		setSearchQuery(name);
 		setListOpen(false);
@@ -95,18 +152,30 @@ export function HomeApp() {
 		setStatusText(`Opening ${name}...`);
 	};
 
+	const selectReviewAndOpen = (review) => {
+		const name = typeof review === 'string' ? review : review.name;
+		setSelectedReview(name);
+		setReviewSearchQuery(name);
+		setReviewListOpen(false);
+		vscode.postMessage({ action: 'openReview', reviewName: name });
+		setStatusText(`Opening ${name}...`);
+	};
+
 	useEffect(() => {
-		if (!listOpen) {
+		if (!listOpen && !reviewListOpen) {
 			return;
 		}
 		const onDocClick = (e) => {
 			if (listRef.current && !listRef.current.contains(e.target)) {
 				setListOpen(false);
 			}
+			if (reviewListRef.current && !reviewListRef.current.contains(e.target)) {
+				setReviewListOpen(false);
+			}
 		};
 		document.addEventListener('pointerdown', onDocClick, true);
 		return () => document.removeEventListener('pointerdown', onDocClick, true);
-	}, [listOpen]);
+	}, [listOpen, reviewListOpen]);
 
 	const openSettings = () => {
 		vscode.postMessage({ action: 'openSettings' });
@@ -114,7 +183,15 @@ export function HomeApp() {
 	};
 
 	return (
-		<div style={{ background: palette.bg, color: palette.text, minHeight: '100vh', padding: 20, boxSizing: 'border-box' }}>
+		<div style={{
+			background: palette.bg,
+			color: palette.text,
+			minHeight: '100vh',
+			padding: 20,
+			boxSizing: 'border-box',
+			fontFamily: 'var(--vscode-font-family, system-ui, -apple-system, sans-serif)',
+			fontSize: 'var(--vscode-font-size, 13px)',
+		}}>
 			<div style={{ maxWidth: 960, margin: '0 auto', display: 'grid', gap: 12 }}>
 				<div style={panelStyle(palette)}>
 					<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -132,15 +209,31 @@ export function HomeApp() {
 						<div style={{ display: 'flex', gap: 8 }}>
 							<button style={buttonStyle(palette)} onClick={openNewFeature}>New Feature</button>
 							<button style={buttonStyle(palette)} onClick={refreshFeatures}>Refresh</button>
+							<button
+								style={dangerButtonStyle(palette, reviewCount === 0)}
+								onClick={removeOldReviews}
+								disabled={reviewCount === 0}
+								title={reviewCount === 0 ? 'No old reviews to remove' : `Remove ${reviewCount} old review artifact${reviewCount === 1 ? '' : 's'}`}
+							>
+								Remove Old Reviews
+							</button>
 						</div>
 
 						<div ref={listRef} style={{ position: 'relative' }}>
+							<div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+								<div style={{ fontSize: 12, fontWeight: 700, color: palette.text }}>
+									Feature conversations
+								</div>
+								<div style={{ fontSize: 12, color: palette.muted }}>
+									Newest first
+								</div>
+							</div>
 							<div style={{ display: 'flex', gap: 8 }}>
 								<input
 									style={inputStyle(palette)}
 									type="text"
 									value={searchQuery}
-									placeholder={features.length === 0 ? 'No features found' : 'Search features…'}
+									placeholder={features.length === 0 ? 'No features found' : 'Search old conversations...'}
 									disabled={features.length === 0}
 									autoComplete="off"
 									spellCheck={false}
@@ -185,24 +278,41 @@ export function HomeApp() {
 									boxShadow: '0 4px 16px rgba(27, 35, 49, 0.12)',
 									zIndex: 10,
 								}} role="listbox">
-									{filteredFeatures.map((f) => (
+									{filteredFeatures.map((feature) => (
 										<li
-											key={f}
+											key={feature.name}
 											role="option"
-											aria-selected={f === selectedFeature}
+											aria-selected={feature.name === selectedFeature}
 											style={{
 												padding: '8px 12px',
 												fontSize: 13,
 												cursor: 'pointer',
-												background: f === selectedFeature ? palette.surface2 : 'transparent',
+												background: feature.name === selectedFeature ? palette.surface2 : 'transparent',
 												borderBottom: `1px solid ${palette.border}`,
 											}}
 											onPointerDown={(e) => {
 												e.preventDefault();
-												selectAndOpen(f);
+												selectAndOpen(feature);
 											}}
 										>
-											{f}
+											<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+												<span style={{
+													overflow: 'hidden',
+													textOverflow: 'ellipsis',
+													whiteSpace: 'nowrap',
+												}}>
+													{feature.name}
+												</span>
+												{feature.ageLabel && (
+													<span style={{
+														flex: '0 0 auto',
+														fontSize: 12,
+														color: palette.muted,
+													}}>
+														{feature.ageLabel}
+													</span>
+												)}
+											</div>
 										</li>
 									))}
 								</ul>
@@ -227,25 +337,144 @@ export function HomeApp() {
 								</div>
 							)}
 						</div>
+
+						<div ref={reviewListRef} style={{ position: 'relative' }}>
+							<div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+								<div style={{ fontSize: 12, fontWeight: 700, color: palette.text }}>
+									Old reviews
+								</div>
+								<div style={{ fontSize: 12, color: palette.muted }}>
+									Recently updated
+								</div>
+							</div>
+							<div style={{ display: 'flex', gap: 8 }}>
+								<input
+									style={inputStyle(palette)}
+									type="text"
+									value={reviewSearchQuery}
+									placeholder={reviews.length === 0 ? 'No reviews found' : 'Search old reviews...'}
+									disabled={reviews.length === 0}
+									autoComplete="off"
+									spellCheck={false}
+									onFocus={() => setReviewListOpen(true)}
+									onChange={(e) => {
+										setReviewSearchQuery(e.target.value);
+										setReviewListOpen(true);
+									}}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter' && filteredReviews.length > 0) {
+											e.preventDefault();
+											selectReviewAndOpen(filteredReviews[0]);
+										}
+										if (e.key === 'Escape') {
+											setReviewListOpen(false);
+										}
+									}}
+								/>
+								<button
+									style={buttonStyle(palette)}
+									onClick={openReview}
+									disabled={reviews.length === 0 || !selectedReview}
+								>
+									Open
+								</button>
+							</div>
+							{reviewListOpen && filteredReviews.length > 0 && (
+								<ul style={{
+									position: 'absolute',
+									left: 0,
+									right: 0,
+									top: '100%',
+									marginTop: 4,
+									margin: '4px 0 0 0',
+									padding: 0,
+									listStyle: 'none',
+									maxHeight: 200,
+									overflowY: 'auto',
+									borderRadius: 8,
+									border: `1px solid ${palette.border}`,
+									background: palette.surface,
+									boxShadow: '0 4px 16px rgba(27, 35, 49, 0.12)',
+									zIndex: 10,
+								}} role="listbox">
+									{filteredReviews.map((review) => (
+										<li
+											key={review.name}
+											role="option"
+											aria-selected={review.name === selectedReview}
+											style={{
+												padding: '8px 12px',
+												fontSize: 13,
+												cursor: 'pointer',
+												background: review.name === selectedReview ? palette.surface2 : 'transparent',
+												borderBottom: `1px solid ${palette.border}`,
+											}}
+											onPointerDown={(e) => {
+												e.preventDefault();
+												selectReviewAndOpen(review);
+											}}
+										>
+											<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+												<span style={{
+													overflow: 'hidden',
+													textOverflow: 'ellipsis',
+													whiteSpace: 'nowrap',
+												}}>
+													{review.name}
+												</span>
+												{review.ageLabel && (
+													<span style={{
+														flex: '0 0 auto',
+														fontSize: 12,
+														color: palette.muted,
+													}}>
+														{review.ageLabel}
+													</span>
+												)}
+											</div>
+										</li>
+									))}
+								</ul>
+							)}
+							{reviewListOpen && reviewSearchQuery.trim() && filteredReviews.length === 0 && (
+								<div style={{
+									position: 'absolute',
+									left: 0,
+									right: 0,
+									top: '100%',
+									marginTop: 4,
+									padding: '8px 12px',
+									fontSize: 12,
+									color: palette.muted,
+									borderRadius: 8,
+									border: `1px solid ${palette.border}`,
+									background: palette.surface,
+									boxShadow: '0 4px 16px rgba(27, 35, 49, 0.12)',
+									zIndex: 10,
+								}}>
+									No matching reviews
+								</div>
+							)}
+						</div>
 					</div>
 				</div>
 
 				{!hasLlmInstructions && (
 					<div style={{
 						...panelStyle(palette),
-						background: '#fffbe6',
-						border: '1px solid #f0d060',
+						background: palette.warningBg,
+						border: `1px solid ${palette.warningBorder}`,
 						display: 'grid',
 						gap: 8,
 					}}>
 						<div style={{ fontWeight: 600, fontSize: 13 }}>LLM setup needed</div>
 						<div style={{ fontSize: 12, color: palette.text, lineHeight: 1.5 }}>
-							Your CLAUDE.md doesn't have the feature-graph schema yet. LLMs need this
+							Your LLM setup is missing the feature-graph schema or Codex skill. LLMs need this
 							to know how to create <code>.features/*.md</code> files with the correct format,
 							where to put them, and what fields are available.
 						</div>
 						<button style={buttonStyle(palette)} onClick={addLlmInstructions}>
-							Add instructions to CLAUDE.md
+							Add instructions and Codex skill
 						</button>
 					</div>
 				)}
@@ -273,6 +502,15 @@ function buttonStyle(palette) {
 		background: palette.button,
 		color: palette.buttonText,
 		cursor: 'pointer',
+	};
+}
+
+function dangerButtonStyle(palette, disabled = false) {
+	return {
+		...buttonStyle(palette),
+		background: palette.danger,
+		opacity: disabled ? 0.45 : 1,
+		cursor: disabled ? 'not-allowed' : 'pointer',
 	};
 }
 

@@ -8,9 +8,7 @@ This project is a VS Code extension called **document-oriented-vibing** (DOV). I
 - The preview updates automatically when the file changes — by you, an LLM, or git.
 - Nodes with file paths in labels (e.g. `src/auth/controller.ts`) are clickable — opens the file in VS Code.
 - "Edit source" button opens the raw `.md` file in the text editor.
-- Reviews live as raw `.diff` files in `.reviews/` at the workspace root.
-- Opening a review shows the captured git diff in a webview.
-- The extension injects LLM instructions into the target project's `CLAUDE.md`, adds a small Codex `AGENTS.md` pointer, and installs a repo-scoped DOV skill under `.agents/skills/`.
+- The extension injects LLM instructions into the target project's `CLAUDE.md` and `AGENTS.md` so any LLM knows the format.
 
 ## Workflow modes
 
@@ -22,6 +20,20 @@ Users prefix their request with a mode keyword:
 
 Do not create `.features/*.md` or `.reviews/*.diff` unless the user explicitly uses one of these modes.
 Do not create `.reviews/*.json` unless the user explicitly asks for a structured DOV review.
+
+## +review workflow
+
+For `+review`, use this lightweight workflow directly:
+
+Run `code --open-url "vscode://<installed-extension-id>/captureReview?name=<kebab-case-title>.diff&threadId=$CODEX_THREAD_ID"`, such as `code --open-url "vscode://<installed-extension-id>/captureReview?name=auth-review.diff&threadId=$CODEX_THREAD_ID"`.
+
+This opens a VS Code URI and requires GUI access. If running in a sandbox, request outside-sandbox/escalated execution up front.
+Do not treat exit code 0 alone as proof that the extension opened; Electron/macOS may print GUI handoff errors such as `task_name_for_pid` even when the CLI exits 0.
+After running the URI command, verify `.reviews/<name>.diff` exists before saying the review opened. If verification fails or outside-sandbox execution is rejected, say the review could not be reliably opened.
+The extension creates `.reviews/` if needed, writes `.reviews/<name>.diff`, and opens the DOV review panel.
+Do not manually write `.reviews/*.diff` or run `git diff` unless the user explicitly asks.
+Do not summarize the diff, write findings, or add metadata unless the user explicitly asks.
+DOV saves approve/reject state itself in a sibling `.state.json` file as the user reviews hunks.
 
 ## Architecture
 

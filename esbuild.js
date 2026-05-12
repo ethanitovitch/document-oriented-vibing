@@ -74,6 +74,7 @@ async function main() {
 		entryPoints: {
 			'home': 'src/webview/home/main.jsx',
 			'feature': 'src/webview/feature/main.jsx',
+			'review': 'src/webview/review/main.jsx',
 			'settings': 'src/webview/settings/main.jsx',
 		},
 		bundle: true,
