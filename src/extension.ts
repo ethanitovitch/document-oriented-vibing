@@ -193,6 +193,10 @@ export function activate(context: vscode.ExtensionContext) {
 		'document-oriented-vibing.approveAllDiffChanges',
 		() => void setAllActiveDiffChangeStatuses('approved'),
 	);
+	const rejectAllDiffChangesDisposable = vscode.commands.registerCommand(
+		'document-oriented-vibing.rejectAllDiffChanges',
+		() => void setAllActiveDiffChangeStatuses('rejected'),
+	);
 	reviewCodeLensProvider = new ReviewCodeLensProvider();
 	reviewBaseContentProvider = new DiffReviewBaseContentProvider();
 	const reviewCodeLensDisposable = vscode.languages.registerCodeLensProvider({ scheme: 'file' }, reviewCodeLensProvider);
@@ -251,6 +255,7 @@ export function activate(context: vscode.ExtensionContext) {
 		undoDiffFileDisposable,
 		openDiffReviewFileDisposable,
 		approveAllDiffChangesDisposable,
+		rejectAllDiffChangesDisposable,
 		reviewCodeLensDisposable,
 		reviewBaseContentDisposable,
 		visibleEditorsDisposable,
@@ -690,9 +695,9 @@ function openReviewPanel(
 			return;
 		}
 
-		if (action === 'approveFile' || action === 'rejectFile' || action === 'undoFile' || action === 'approveAll' || action === 'undoAll') {
+		if (action === 'approveFile' || action === 'rejectFile' || action === 'undoFile' || action === 'approveAll' || action === 'rejectAll' || action === 'undoAll') {
 			if (reviewName.toLowerCase().endsWith('.diff')) {
-				const status: ReviewStatus = action === 'rejectFile'
+				const status: ReviewStatus = action === 'rejectFile' || action === 'rejectAll'
 					? 'rejected'
 					: action === 'undoFile' || action === 'undoAll'
 						? 'pending'
@@ -708,7 +713,10 @@ function openReviewPanel(
 			}
 			const filePath = (message as { filePath?: unknown }).filePath;
 			const targetPath = action === 'approveFile' && typeof filePath === 'string' ? filePath : undefined;
-			void approveReviewChanges(reviewUri, targetPath).then(() => {
+			const update = action === 'rejectAll'
+				? rejectReviewChanges(reviewUri)
+				: approveReviewChanges(reviewUri, targetPath);
+			void update.then(() => {
 				void readReviewAndSend(panel, reviewName, reviewUri);
 			});
 		}
@@ -1218,6 +1226,18 @@ async function approveReviewChanges(reviewUri: vscode.Uri, filePath?: string): P
 	if (filePath) {
 		await focusReviewFile(reviewUri, filePath);
 	}
+}
+
+async function rejectReviewChanges(reviewUri: vscode.Uri): Promise<void> {
+	const review = await readReviewDocument(reviewUri);
+	for (const file of getReviewFiles(review)) {
+		for (const change of getReviewChanges(file)) {
+			if (getReviewStatus(change) === 'pending') {
+				change.status = 'rejected';
+			}
+		}
+	}
+	await writeReviewDocument(reviewUri, review);
 }
 
 async function applyReviewChange(filePath: string, change: ReviewChange): Promise<void> {

@@ -16,14 +16,14 @@ Users prefix their request with a mode keyword:
 
 - **`+plan`** — Plan only. Create the `.features/*.md` diagram with placeholder file paths. Do NOT write source code. User reviews the diagram first.
 - **`+show`** — Build and show. Write the actual source code, then create the `.features/*.md` diagram with real file paths pointing to the code just written.
-- **`+review`** — Open the DOV capture URI with the editor CLI.
+- **`+review`** — After code edits are complete, open the DOV capture URI with the editor CLI.
 
 Do not create `.features/*.md` or `.reviews/*.diff` unless the user explicitly uses one of these modes.
 Do not create `.reviews/*.json` unless the user explicitly asks for a structured DOV review.
 
 ## +review workflow
 
-For `+review`, use this lightweight workflow directly:
+For `+review`, use this lightweight workflow directly after all requested source edits are complete. `+review` builds the review from changes recorded in the current chat/session, so running it before editing code will miss the later changes.
 
 Run `code --open-url "vscode://<installed-extension-id>/captureReview?name=<kebab-case-title>.diff&threadId=$CODEX_THREAD_ID"`, such as `code --open-url "vscode://<installed-extension-id>/captureReview?name=auth-review.diff&threadId=$CODEX_THREAD_ID"`.
 

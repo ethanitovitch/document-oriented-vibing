@@ -1,4 +1,4 @@
-export const DOV_SCHEMA_VERSION = 18;
+export const DOV_SCHEMA_VERSION = 19;
 export const LLM_INSTRUCTIONS_START = `<!-- dov-start v${DOV_SCHEMA_VERSION} -->`;
 export const LLM_INSTRUCTIONS_END = `<!-- dov-end -->`;
 export const LLM_INSTRUCTIONS_MARKER = LLM_INSTRUCTIONS_START;
@@ -41,7 +41,7 @@ export function getLlmInstructions(options: DovInstructionOptions = {}): string 
 		'',
 		'- **`+plan`** — Diagram only. Placeholder file paths. No source code.',
 		'- **`+show`** — Write code first, then diagram with real paths.',
-		'- **`+review`** — Open the DOV capture URI with the editor CLI.',
+		'- **`+review`** — After code edits are complete, open the DOV capture URI with the editor CLI.',
 		'',
 		'### File format',
 		'',
@@ -65,7 +65,8 @@ export function getLlmInstructions(options: DovInstructionOptions = {}): string 
 		'',
 		'### Review file format',
 		'',
-		'When the user says `+review`, open the DOV capture URI so the extension captures and opens the current Codex diff.',
+		'When the user says `+review`, open the DOV capture URI only after all requested code edits are complete.',
+		'`+review` builds the review from changes recorded in the current chat/session, so running it before editing code will miss the later changes.',
 		'',
 		`Run \`${captureReviewCommand}\`.`,
 		'This opens a VS Code URI and requires GUI access. If running in a sandbox, request outside-sandbox/escalated execution up front.',
@@ -149,7 +150,8 @@ export function getCodexAgentsInstructions(options: DovInstructionOptions = {}):
 		'Do not create `.reviews/*.diff` files unless the user explicitly uses `+review`.',
 		'Do not create `.reviews/*.json` files unless the user explicitly asks for a structured DOV review.',
 		'',
-		`For \`+review\`, run \`${captureReviewCommand}\`, such as \`${exampleCaptureReviewCommand}\`.`,
+		`For \`+review\`, after all requested code edits are complete, run \`${captureReviewCommand}\`, such as \`${exampleCaptureReviewCommand}\`.`,
+		'`+review` builds the review from changes recorded in the current chat/session, so running it before editing code will miss the later changes.',
 		'This opens a VS Code URI and requires GUI access. If running in a sandbox, request outside-sandbox/escalated execution up front.',
 		'Do not treat exit code 0 alone as proof that the extension opened; Electron/macOS may print GUI handoff errors such as `task_name_for_pid` even when the CLI exits 0.',
 		'After running the URI command, verify `.reviews/<name>.diff` exists before saying the review opened. If verification fails or outside-sandbox execution is rejected, say the review could not be reliably opened.',
@@ -181,7 +183,7 @@ export function getDovSkillInstructions(options: DovInstructionOptions = {}): st
 		'',
 		'- `+plan`: create or update only `.features/*.md`. Use plausible placeholder file paths. Do not write source code.',
 		'- `+show`: write the requested code first, then create or update `.features/*.md` with real file paths pointing to the code.',
-		`- \`+review\`: run \`${captureReviewCommand}\`. Do not summarize, review, or apply changes yourself.`,
+		`- \`+review\`: after code edits are complete, run \`${captureReviewCommand}\`. Do not summarize, review, or apply changes yourself.`,
 		'- Without `+plan`, `+show`, or `+review`: do not create `.features/*.md`, `.reviews/*.diff`, or `.reviews/*.json` unless the user explicitly asks for a DOV feature diagram or DOV review.',
 		'',
 		'## Workflow',
@@ -191,11 +193,12 @@ export function getDovSkillInstructions(options: DovInstructionOptions = {}): st
 		'3. Include full relative paths from the workspace root in clickable nodes, such as `src/auth/controller.ts:15`.',
 		'4. Add `## Summary` and `## Details` sections when useful for review.',
 		'5. For exact syntax and examples, read `references/schema.md`.',
-		'6. For `+review`, follow the raw diff workflow in `references/review-schema.md`.',
+		'6. For `+review`, finish the requested code edits first, then follow the raw diff workflow in `references/review-schema.md`.',
 		'',
 		'## Review Workflow',
 		'',
-		`When the user says \`+review\`, run \`${captureReviewCommand}\`, such as \`${exampleCaptureReviewCommand}\`.`,
+		`When the user says \`+review\`, run \`${captureReviewCommand}\`, such as \`${exampleCaptureReviewCommand}\`, only after all requested code edits are complete.`,
+		'`+review` builds the review from changes recorded in the current chat/session, so running it before editing code will miss the later changes.',
 		'This opens a VS Code URI and requires GUI access. If running in a sandbox, request outside-sandbox/escalated execution up front.',
 		'Do not treat exit code 0 alone as proof that the extension opened; Electron/macOS may print GUI handoff errors such as `task_name_for_pid` even when the CLI exits 0.',
 		'After running the URI command, verify `.reviews/<name>.diff` exists before saying the review opened. If verification fails or outside-sandbox execution is rejected, say the review could not be reliably opened.',
@@ -219,7 +222,8 @@ export function getReviewSchemaDocument(options: DovInstructionOptions = {}): st
 	return [
 		'# DOV Review File',
 		'',
-		'When the user says `+review`, open the DOV capture URI.',
+		'When the user says `+review`, open the DOV capture URI after all requested code edits are complete.',
+		'`+review` builds the review from changes recorded in the current chat/session, so running it before editing code will miss the later changes.',
 		'The extension writes a raw scoped git diff file in `.reviews/` and opens it as a review page.',
 		'',
 		'## File Path',

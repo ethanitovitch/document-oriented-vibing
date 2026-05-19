@@ -42,6 +42,7 @@ export function ReviewApp() {
 	const [selectedPath, setSelectedPath] = useState('');
 	const [selectedChangeId, setSelectedChangeId] = useState('');
 	const [expandedHunks, setExpandedHunks] = useState({});
+	const [expandedDiffFiles, setExpandedDiffFiles] = useState({});
 	const [statusText, setStatusText] = useState('Loading review...');
 	const isDiffReview = reviewName.toLowerCase().endsWith('.diff');
 
@@ -170,6 +171,11 @@ export function ReviewApp() {
 		setStatusText('Accepting all pending changes...');
 	};
 
+	const rejectAll = () => {
+		vscode.postMessage({ action: 'rejectAll' });
+		setStatusText('Rejecting all pending changes...');
+	};
+
 	const completeReview = () => {
 		vscode.postMessage({ action: 'completeReview' });
 		setStatusText('Completing review...');
@@ -199,6 +205,10 @@ export function ReviewApp() {
 			vscode.postMessage({ action: 'approveAll' });
 			setStatusText('Approving all pending changes...');
 		};
+		const rejectAllDiffChanges = () => {
+			vscode.postMessage({ action: 'rejectAll' });
+			setStatusText('Rejecting all pending changes...');
+		};
 		const undoAllDiffChanges = () => {
 			vscode.postMessage({ action: 'undoAll' });
 			setStatusText('Undoing all review states...');
@@ -220,6 +230,16 @@ export function ReviewApp() {
 				...current,
 				[changeId]: !current[changeId],
 			}));
+		};
+		const toggleDiffFileHunks = (file) => {
+			setExpandedDiffFiles((current) => {
+				const nextExpanded = !current[file.path];
+				setStatusText(`${nextExpanded ? 'Expanded' : 'Collapsed'} hunks in ${file.path}.`);
+				return {
+					...current,
+					[file.path]: nextExpanded,
+				};
+			});
 		};
 		const copyDiffFile = (file) => {
 			copyReviewText(formatFileForLlm(file), `changes for ${file.path}`);
@@ -254,6 +274,11 @@ export function ReviewApp() {
 										Approve All
 									</button>
 								)}
+								{diffTotals.pending > 0 && (
+									<button style={dangerButtonStyle()} onClick={rejectAllDiffChanges}>
+										Reject All
+									</button>
+								)}
 								{(diffTotals.approved > 0 || diffTotals.rejected > 0) && (
 									<button style={secondaryButtonStyle()} onClick={undoAllDiffChanges}>
 										Undo All
@@ -284,6 +309,8 @@ export function ReviewApp() {
 						{diffFiles.map((file) => {
 							const changes = getChanges(file);
 							const fileTotals = getTotals([file]);
+							const fileExpanded = Boolean(expandedDiffFiles[file.path]);
+							const visibleChanges = fileExpanded ? changes : changes.slice(0, 4);
 							return (
 								<article key={file.path} style={panelStyle()}>
 									<div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 12, alignItems: 'start' }}>
@@ -308,7 +335,7 @@ export function ReviewApp() {
 										</div>
 									</div>
 									<div style={{ display: 'grid', gap: 6, marginTop: 12 }}>
-										{changes.slice(0, 4).map((change, index) => {
+										{visibleChanges.map((change, index) => {
 											const status = getStatus(change);
 											return (
 											<div
@@ -387,9 +414,16 @@ export function ReviewApp() {
 											);
 										})}
 										{changes.length > 4 && (
-											<div style={{ fontSize: 12, color: palette.muted }}>
-												+ {changes.length - 4} more hunks
-											</div>
+											<button
+												style={{
+													...secondaryButtonStyle(),
+													justifySelf: 'start',
+													marginTop: 2,
+												}}
+												onClick={() => toggleDiffFileHunks(file)}
+											>
+												{fileExpanded ? 'Collapse Hunks' : `Show ${changes.length - 4} More Hunks`}
+											</button>
 										)}
 									</div>
 								</article>
@@ -428,6 +462,7 @@ export function ReviewApp() {
 					<div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
 						<button style={approveButtonStyle()} disabled={!selectedFile} onClick={approveFile}>Accept File</button>
 						<button style={approveButtonStyle()} disabled={totals.pending === 0} onClick={approveAll}>Accept All</button>
+						<button style={dangerButtonStyle()} disabled={totals.pending === 0} onClick={rejectAll}>Reject All</button>
 						<button
 							style={dangerButtonStyle(totals.pending > 0)}
 							disabled={totals.pending > 0}
