@@ -121,6 +121,22 @@ export function ReviewApp() {
 		setStatusText(`Opened ${file.path}.`);
 	};
 
+	const openStructuredFile = (file) => {
+		if (!file?.path) {
+			return;
+		}
+		const firstChange = getChanges(file)[0];
+		const firstChangeId = firstChange ? getChangeId(firstChange, 0) : '';
+		setSelectedPath(file.path);
+		setSelectedChangeId(firstChangeId);
+		vscode.postMessage({
+			action: firstChangeId ? 'selectChange' : 'openFile',
+			filePath: file.path,
+			changeId: firstChangeId,
+		});
+		setStatusText(`Opened ${file.path}.`);
+	};
+
 	const chooseChange = (change, index) => {
 		if (!selectedFile?.path) {
 			return;
@@ -315,7 +331,9 @@ export function ReviewApp() {
 								<article key={file.path} style={panelStyle()}>
 									<div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 12, alignItems: 'start' }}>
 										<div>
-											<h2 style={{ margin: 0, fontSize: 15, overflowWrap: 'anywhere' }}>{file.path}</h2>
+											<button style={fileNameButtonStyle(15)} onClick={() => openDiffFile(file)}>
+												{file.path}
+											</button>
 											<div style={{ marginTop: 6, fontSize: 12, color: palette.muted }}>
 												{changes.length} hunks · {fileTotals.pending} pending · {fileTotals.approved} approved · {fileTotals.rejected} rejected
 											</div>
@@ -498,7 +516,13 @@ export function ReviewApp() {
 					<section style={panelStyle()}>
 						<div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start' }}>
 							<div>
-								<h1 style={{ margin: 0, fontSize: 20 }}>{selectedFile?.path || 'No file selected'}</h1>
+								{selectedFile ? (
+									<button style={fileNameButtonStyle(20)} onClick={() => openStructuredFile(selectedFile)}>
+										{selectedFile.path || 'Untitled file'}
+									</button>
+								) : (
+									<h1 style={{ margin: 0, fontSize: 20 }}>No file selected</h1>
+								)}
 								{selectedFile?.summary && (
 									<div style={{ marginTop: 6, color: palette.muted, fontSize: 13, lineHeight: 1.5 }}>
 										{selectedFile.summary}
@@ -856,6 +880,24 @@ function fileButtonStyle(active) {
 		color: active ? palette.buttonText : palette.text,
 		cursor: 'pointer',
 		fontSize: 12,
+	};
+}
+
+function fileNameButtonStyle(fontSize) {
+	return {
+		display: 'block',
+		maxWidth: '100%',
+		margin: 0,
+		padding: 0,
+		border: 0,
+		background: 'transparent',
+		color: palette.text,
+		font: 'inherit',
+		fontSize,
+		fontWeight: 600,
+		textAlign: 'left',
+		overflowWrap: 'anywhere',
+		cursor: 'pointer',
 	};
 }
 

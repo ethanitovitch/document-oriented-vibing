@@ -104,6 +104,14 @@ interface ReviewListItem {
 	ageLabel: string;
 }
 
+interface CodexThreadListItem {
+	id: string;
+	title: string;
+	updatedAt: number;
+	ageLabel: string;
+	changeCount: number;
+}
+
 interface CodexPatchHunk {
 	filePath: string;
 	oldLines: string[];
@@ -330,6 +338,15 @@ function openHomePanel(context: vscode.ExtensionContext): void {
 			}
 			return;
 		}
+		if (action === 'captureReviewFromThread') {
+			const threadId = (message as { threadId?: unknown }).threadId;
+			if (typeof threadId === 'string' && threadId.trim()) {
+				void captureCodexReview(context, { threadId: threadId.trim() }).then(() => {
+					void publishHomeState(panel, 'Updated Codex thread reviews.');
+				});
+			}
+			return;
+		}
 		if (action === 'addLlmInstructions') {
 			void addLlmInstructionsAndCodexSkill(context).then(() => {
 				void publishHomeState(panel, 'Added feature-graph instructions to CLAUDE.md and Codex skill.');
@@ -343,9 +360,10 @@ function openHomePanel(context: vscode.ExtensionContext): void {
 }
 
 async function publishHomeState(panel: vscode.WebviewPanel, statusText: string): Promise<void> {
-	const [features, reviews, featuresFolderExists, hasLlmInstructions, reviewCount] = await Promise.all([
+	const [features, reviews, codexThreads, featuresFolderExists, hasLlmInstructions, reviewCount] = await Promise.all([
 		readFeatureEntries(),
 		readReviewEntries(),
+		readCodexThreadEntries(),
 		checkFeaturesFolderExists(),
 		checkLlmFilesHaveInstructions(),
 		readReviewArtifactCount(),
@@ -355,6 +373,7 @@ async function publishHomeState(panel: vscode.WebviewPanel, statusText: string):
 		statusText,
 		features,
 		reviews,
+		codexThreads,
 		featuresFolderExists,
 		hasLlmInstructions,
 		reviewCount,
@@ -1706,6 +1725,10 @@ async function readCodexPatchHunksForReview(workspaceRoot: string, requestedThre
 		.split(/\r?\n/)
 		.filter(Boolean)
 		.flatMap((line) => parseCodexSessionRecord(line));
+	return extractRecentCodexPatchHunksForReview(records, workspaceRoot);
+}
+
+function extractRecentCodexPatchHunksForReview(records: CodexSessionRecord[], workspaceRoot: string): CodexPatchHunk[] {
 	const userTimestamps = records
 		.filter((record) => (
 			record.type === 'response_item' &&
@@ -1992,6 +2015,71 @@ async function findCodexSessionFile(threadId: string): Promise<string | undefine
 	return undefined;
 }
 
+async function readCodexThreadEntries(): Promise<CodexThreadListItem[]> {
+	const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+	if (!workspaceFolder) {
+		return [];
+	}
+
+	const sessionsRoot = path.join(os.homedir(), '.codex', 'sessions');
+	const files = await listFilesIfExists(sessionsRoot);
+	const jsonlStats = await Promise.all(
+		files
+			.filter((file) => file.endsWith('.jsonl'))
+			.map(async (file) => {
+				try {
+					const stat = await fs.stat(file);
+					return { file, mtime: stat.mtimeMs };
+				} catch {
+					return undefined;
+				}
+			}),
+	);
+
+	const recentJsonlStats = jsonlStats
+		.filter((entry): entry is { file: string; mtime: number } => Boolean(entry))
+		.sort((a, b) => b.mtime - a.mtime)
+		.slice(0, 100);
+
+	const entries = await Promise.all(
+		recentJsonlStats.map(async ({ file, mtime }) => {
+			try {
+				const rawSession = await fs.readFile(file, 'utf8');
+				const records = rawSession
+					.split(/\r?\n/)
+					.filter(Boolean)
+					.flatMap((line) => parseCodexSessionRecord(line));
+				const hunks = extractRecentCodexPatchHunksForReview(records, workspaceFolder.uri.fsPath);
+				const changedFiles = new Set(hunks.map((hunk) => hunk.filePath));
+				if (changedFiles.size === 0) {
+					return undefined;
+				}
+				return {
+					id: getCodexThreadId(records, file),
+					title: getCodexThreadTitle(records, file),
+					updatedAt: mtime,
+					ageLabel: formatRelativeAge(mtime, 'Updated'),
+					changeCount: changedFiles.size,
+				};
+			} catch {
+				return undefined;
+			}
+		}),
+	);
+
+	return entries
+		.filter((entry): entry is CodexThreadListItem => Boolean(entry))
+		.sort((a, b) => b.updatedAt - a.updatedAt || a.title.localeCompare(b.title));
+}
+
+async function listFilesIfExists(root: string): Promise<string[]> {
+	try {
+		return await listFiles(root);
+	} catch {
+		return [];
+	}
+}
+
 async function listFiles(root: string): Promise<string[]> {
 	const entries = await fs.readdir(root, { withFileTypes: true });
 	const files = await Promise.all(
@@ -2004,6 +2092,80 @@ async function listFiles(root: string): Promise<string[]> {
 		}),
 	);
 	return files.flat();
+}
+
+function getCodexThreadId(records: CodexSessionRecord[], file: string): string {
+	for (const record of records) {
+		const candidate = getStringProperty(record, 'thread_id')
+			?? getStringProperty(record, 'threadId')
+			?? getStringProperty(record, 'session_id')
+			?? getStringProperty(record, 'sessionId');
+		if (candidate) {
+			return candidate;
+		}
+	}
+	return path.basename(file, '.jsonl');
+}
+
+function getCodexThreadTitle(records: CodexSessionRecord[], file: string): string {
+	const titles: string[] = [];
+	for (const record of records) {
+		if (
+			record.type === 'response_item' &&
+			record.payload?.type === 'message' &&
+			record.payload.role === 'user'
+		) {
+			const text = getMessageText(record.payload);
+			if (text) {
+				titles.push(trimTitle(text));
+			}
+		}
+	}
+	const latestTitle = titles.at(-1);
+	if (latestTitle) {
+		return latestTitle;
+	}
+	return path.basename(file, '.jsonl');
+}
+
+function getStringProperty(value: unknown, key: string): string | undefined {
+	if (!value || typeof value !== 'object') {
+		return undefined;
+	}
+	const candidate = (value as Record<string, unknown>)[key];
+	return typeof candidate === 'string' && candidate.trim() ? candidate.trim() : undefined;
+}
+
+function getMessageText(payload: unknown): string | undefined {
+	if (!payload || typeof payload !== 'object') {
+		return undefined;
+	}
+	const content = (payload as Record<string, unknown>).content;
+	if (typeof content === 'string') {
+		return content;
+	}
+	if (Array.isArray(content)) {
+		const parts = content.flatMap((part) => {
+			if (typeof part === 'string') {
+				return [part];
+			}
+			if (!part || typeof part !== 'object') {
+				return [];
+			}
+			const text = (part as Record<string, unknown>).text;
+			return typeof text === 'string' ? [text] : [];
+		});
+		return parts.join(' ');
+	}
+	return undefined;
+}
+
+function trimTitle(value: string): string {
+	const title = value.replace(/\s+/g, ' ').trim();
+	if (title.length <= 80) {
+		return title;
+	}
+	return `${title.slice(0, 77)}...`;
 }
 
 function parseCodexSessionRecord(line: string): CodexSessionRecord[] {

@@ -31,20 +31,37 @@ function normalizeFeature(feature) {
 	return null;
 }
 
+function normalizeCodexThread(thread) {
+	if (!thread || typeof thread.id !== 'string') {
+		return null;
+	}
+	return {
+		id: thread.id,
+		title: typeof thread.title === 'string' && thread.title.trim() ? thread.title : thread.id,
+		ageLabel: typeof thread.ageLabel === 'string' ? thread.ageLabel : '',
+		changeCount: typeof thread.changeCount === 'number' ? thread.changeCount : 0,
+	};
+}
+
 export function HomeApp() {
 	const [statusText, setStatusText] = useState('Loading...');
 	const [features, setFeatures] = useState([]);
 	const [reviews, setReviews] = useState([]);
+	const [codexThreads, setCodexThreads] = useState([]);
 	const [selectedFeature, setSelectedFeature] = useState('');
 	const [selectedReview, setSelectedReview] = useState('');
+	const [selectedCodexThread, setSelectedCodexThread] = useState('');
 	const [searchQuery, setSearchQuery] = useState('');
 	const [reviewSearchQuery, setReviewSearchQuery] = useState('');
+	const [threadSearchQuery, setThreadSearchQuery] = useState('');
 	const [listOpen, setListOpen] = useState(false);
 	const [reviewListOpen, setReviewListOpen] = useState(false);
+	const [threadListOpen, setThreadListOpen] = useState(false);
 	const [featuresFolderExists, setFeaturesFolderExists] = useState(false);
 	const [reviewCount, setReviewCount] = useState(0);
 	const listRef = useRef(null);
 	const reviewListRef = useRef(null);
+	const threadListRef = useRef(null);
 	const [hasLlmInstructions, setHasLlmInstructions] = useState(true);
 
 	useEffect(() => {
@@ -62,8 +79,12 @@ export function HomeApp() {
 			const nextReviews = Array.isArray(message.reviews)
 				? message.reviews.map(normalizeFeature).filter(Boolean)
 				: [];
+			const nextCodexThreads = Array.isArray(message.codexThreads)
+				? message.codexThreads.map(normalizeCodexThread).filter(Boolean)
+				: [];
 			setFeatures(nextFeatures);
 			setReviews(nextReviews);
+			setCodexThreads(nextCodexThreads);
 			setFeaturesFolderExists(Boolean(message.featuresFolderExists));
 			setHasLlmInstructions(Boolean(message.hasLlmInstructions));
 			setReviewCount(typeof message.reviewCount === 'number' ? message.reviewCount : 0);
@@ -77,12 +98,17 @@ export function HomeApp() {
 			} else if (!nextReviews.some((review) => review.name === selectedReview)) {
 				setSelectedReview(nextReviews[0].name);
 			}
+			if (nextCodexThreads.length === 0) {
+				setSelectedCodexThread('');
+			} else if (!nextCodexThreads.some((thread) => thread.id === selectedCodexThread)) {
+				setSelectedCodexThread(nextCodexThreads[0].id);
+			}
 		};
 
 		window.addEventListener('message', handler);
 		vscode.postMessage({ action: 'ready' });
 		return () => window.removeEventListener('message', handler);
-	}, [selectedFeature, selectedReview]);
+	}, [selectedFeature, selectedReview, selectedCodexThread]);
 
 	const createFeaturesFolder = () => {
 		vscode.postMessage({ action: 'createFeaturesFolder' });
@@ -122,6 +148,15 @@ export function HomeApp() {
 		setStatusText(`Opening ${selectedReview}...`);
 	};
 
+	const captureReviewFromThread = () => {
+		if (!selectedCodexThread) {
+			setStatusText('Select a Codex thread first.');
+			return;
+		}
+		vscode.postMessage({ action: 'captureReviewFromThread', threadId: selectedCodexThread });
+		setStatusText('Capturing review from selected Codex thread...');
+	};
+
 	const addLlmInstructions = () => {
 		vscode.postMessage({ action: 'addLlmInstructions' });
 		setStatusText('Adding instructions and Codex skill...');
@@ -143,6 +178,17 @@ export function HomeApp() {
 		return reviews.filter((review) => review.name.toLowerCase().includes(q));
 	}, [reviews, reviewSearchQuery]);
 
+	const filteredCodexThreads = useMemo(() => {
+		const q = threadSearchQuery.trim().toLowerCase();
+		if (!q) {
+			return codexThreads;
+		}
+		return codexThreads.filter((thread) => (
+			thread.title.toLowerCase().includes(q) ||
+			thread.id.toLowerCase().includes(q)
+		));
+	}, [codexThreads, threadSearchQuery]);
+
 	const selectAndOpen = (feature) => {
 		const name = typeof feature === 'string' ? feature : feature.name;
 		setSelectedFeature(name);
@@ -161,8 +207,16 @@ export function HomeApp() {
 		setStatusText(`Opening ${name}...`);
 	};
 
+	const selectCodexThread = (thread) => {
+		const id = typeof thread === 'string' ? thread : thread.id;
+		const title = typeof thread === 'string' ? thread : thread.title;
+		setSelectedCodexThread(id);
+		setThreadSearchQuery(title);
+		setThreadListOpen(false);
+	};
+
 	useEffect(() => {
-		if (!listOpen && !reviewListOpen) {
+		if (!listOpen && !reviewListOpen && !threadListOpen) {
 			return;
 		}
 		const onDocClick = (e) => {
@@ -172,10 +226,13 @@ export function HomeApp() {
 			if (reviewListRef.current && !reviewListRef.current.contains(e.target)) {
 				setReviewListOpen(false);
 			}
+			if (threadListRef.current && !threadListRef.current.contains(e.target)) {
+				setThreadListOpen(false);
+			}
 		};
 		document.addEventListener('pointerdown', onDocClick, true);
 		return () => document.removeEventListener('pointerdown', onDocClick, true);
-	}, [listOpen, reviewListOpen]);
+	}, [listOpen, reviewListOpen, threadListOpen]);
 
 	const openSettings = () => {
 		vscode.postMessage({ action: 'openSettings' });
@@ -334,6 +391,139 @@ export function HomeApp() {
 									zIndex: 10,
 								}}>
 									No matching features
+								</div>
+							)}
+						</div>
+
+						<div ref={threadListRef} style={{ position: 'relative' }}>
+							<div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+								<div style={{ fontSize: 12, fontWeight: 700, color: palette.text }}>
+									Previous Codex threads
+								</div>
+								<div style={{ fontSize: 12, color: palette.muted }}>
+									With code changes
+								</div>
+							</div>
+							<div style={{ display: 'flex', gap: 8 }}>
+								<input
+									style={inputStyle(palette)}
+									type="text"
+									value={threadSearchQuery}
+									placeholder={codexThreads.length === 0 ? 'No Codex threads with code changes found' : 'Search Codex threads...'}
+									disabled={codexThreads.length === 0}
+									autoComplete="off"
+									spellCheck={false}
+									onFocus={() => setThreadListOpen(true)}
+									onChange={(e) => {
+										setThreadSearchQuery(e.target.value);
+										setThreadListOpen(true);
+									}}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter' && filteredCodexThreads.length > 0) {
+											e.preventDefault();
+											selectCodexThread(filteredCodexThreads[0]);
+										}
+										if (e.key === 'Escape') {
+											setThreadListOpen(false);
+										}
+									}}
+								/>
+								<button
+									style={buttonStyle(palette)}
+									onClick={captureReviewFromThread}
+									disabled={codexThreads.length === 0 || !selectedCodexThread}
+								>
+									Capture Review
+								</button>
+							</div>
+							{threadListOpen && filteredCodexThreads.length > 0 && (
+								<ul style={{
+									position: 'absolute',
+									left: 0,
+									right: 0,
+									top: '100%',
+									marginTop: 4,
+									margin: '4px 0 0 0',
+									padding: 0,
+									listStyle: 'none',
+									maxHeight: 220,
+									overflowY: 'auto',
+									borderRadius: 8,
+									border: `1px solid ${palette.border}`,
+									background: palette.surface,
+									boxShadow: '0 4px 16px rgba(27, 35, 49, 0.12)',
+									zIndex: 10,
+								}} role="listbox">
+									{filteredCodexThreads.map((thread) => (
+										<li
+											key={thread.id}
+											role="option"
+											aria-selected={thread.id === selectedCodexThread}
+											style={{
+												padding: '8px 12px',
+												fontSize: 13,
+												cursor: 'pointer',
+												background: thread.id === selectedCodexThread ? palette.surface2 : 'transparent',
+												borderBottom: `1px solid ${palette.border}`,
+											}}
+											onPointerDown={(e) => {
+												e.preventDefault();
+												selectCodexThread(thread);
+											}}
+										>
+											<div style={{ display: 'grid', gap: 3 }}>
+												<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+													<span style={{
+														overflow: 'hidden',
+														textOverflow: 'ellipsis',
+														whiteSpace: 'nowrap',
+													}}>
+														{thread.title}
+													</span>
+													{thread.ageLabel && (
+														<span style={{
+															flex: '0 0 auto',
+															fontSize: 12,
+															color: palette.muted,
+														}}>
+															{thread.ageLabel}
+														</span>
+													)}
+												</div>
+												<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 12, color: palette.muted }}>
+													<span style={{
+														overflow: 'hidden',
+														textOverflow: 'ellipsis',
+														whiteSpace: 'nowrap',
+													}}>
+														{thread.id}
+													</span>
+													<span style={{ flex: '0 0 auto' }}>
+														{thread.changeCount} changed file{thread.changeCount === 1 ? '' : 's'}
+													</span>
+												</div>
+											</div>
+										</li>
+									))}
+								</ul>
+							)}
+							{threadListOpen && threadSearchQuery.trim() && filteredCodexThreads.length === 0 && (
+								<div style={{
+									position: 'absolute',
+									left: 0,
+									right: 0,
+									top: '100%',
+									marginTop: 4,
+									padding: '8px 12px',
+									fontSize: 12,
+									color: palette.muted,
+									borderRadius: 8,
+									border: `1px solid ${palette.border}`,
+									background: palette.surface,
+									boxShadow: '0 4px 16px rgba(27, 35, 49, 0.12)',
+									zIndex: 10,
+								}}>
+									No matching Codex threads
 								</div>
 							)}
 						</div>

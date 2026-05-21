@@ -1,4 +1,4 @@
-export const DOV_SCHEMA_VERSION = 19;
+export const DOV_SCHEMA_VERSION = 20;
 export const LLM_INSTRUCTIONS_START = `<!-- dov-start v${DOV_SCHEMA_VERSION} -->`;
 export const LLM_INSTRUCTIONS_END = `<!-- dov-end -->`;
 export const LLM_INSTRUCTIONS_MARKER = LLM_INSTRUCTIONS_START;
@@ -67,6 +67,7 @@ export function getLlmInstructions(options: DovInstructionOptions = {}): string 
 		'',
 		'When the user says `+review`, open the DOV capture URI only after all requested code edits are complete.',
 		'`+review` builds the review from changes recorded in the current chat/session, so running it before editing code will miss the later changes.',
+		'Review capture only works for a Codex thread that contains Codex-made code changes in this workspace. It should be the final step at the end of the thread, after code changes and verification.',
 		'',
 		`Run \`${captureReviewCommand}\`.`,
 		'This opens a VS Code URI and requires GUI access. If running in a sandbox, request outside-sandbox/escalated execution up front.',
@@ -152,6 +153,7 @@ export function getCodexAgentsInstructions(options: DovInstructionOptions = {}):
 		'',
 		`For \`+review\`, after all requested code edits are complete, run \`${captureReviewCommand}\`, such as \`${exampleCaptureReviewCommand}\`.`,
 		'`+review` builds the review from changes recorded in the current chat/session, so running it before editing code will miss the later changes.',
+		'Review capture only works when the current Codex thread contains Codex-made code changes in this workspace. Run it at the end of the thread after the code changes and verification are complete.',
 		'This opens a VS Code URI and requires GUI access. If running in a sandbox, request outside-sandbox/escalated execution up front.',
 		'Do not treat exit code 0 alone as proof that the extension opened; Electron/macOS may print GUI handoff errors such as `task_name_for_pid` even when the CLI exits 0.',
 		'After running the URI command, verify `.reviews/<name>.diff` exists before saying the review opened. If verification fails or outside-sandbox execution is rejected, say the review could not be reliably opened.',
@@ -184,6 +186,7 @@ export function getDovSkillInstructions(options: DovInstructionOptions = {}): st
 		'- `+plan`: create or update only `.features/*.md`. Use plausible placeholder file paths. Do not write source code.',
 		'- `+show`: write the requested code first, then create or update `.features/*.md` with real file paths pointing to the code.',
 		`- \`+review\`: after code edits are complete, run \`${captureReviewCommand}\`. Do not summarize, review, or apply changes yourself.`,
+		'- `+review` only works when the current Codex thread contains Codex-made code changes in this workspace, and should run at the end after code changes and verification.',
 		'- Without `+plan`, `+show`, or `+review`: do not create `.features/*.md`, `.reviews/*.diff`, or `.reviews/*.json` unless the user explicitly asks for a DOV feature diagram or DOV review.',
 		'',
 		'## Workflow',
@@ -199,6 +202,7 @@ export function getDovSkillInstructions(options: DovInstructionOptions = {}): st
 		'',
 		`When the user says \`+review\`, run \`${captureReviewCommand}\`, such as \`${exampleCaptureReviewCommand}\`, only after all requested code edits are complete.`,
 		'`+review` builds the review from changes recorded in the current chat/session, so running it before editing code will miss the later changes.',
+		'Review capture only works for a Codex thread that contains Codex-made code changes in this workspace. Run it as the final step at the end of the thread after the code changes and verification are complete.',
 		'This opens a VS Code URI and requires GUI access. If running in a sandbox, request outside-sandbox/escalated execution up front.',
 		'Do not treat exit code 0 alone as proof that the extension opened; Electron/macOS may print GUI handoff errors such as `task_name_for_pid` even when the CLI exits 0.',
 		'After running the URI command, verify `.reviews/<name>.diff` exists before saying the review opened. If verification fails or outside-sandbox execution is rejected, say the review could not be reliably opened.',
@@ -224,6 +228,7 @@ export function getReviewSchemaDocument(options: DovInstructionOptions = {}): st
 		'',
 		'When the user says `+review`, open the DOV capture URI after all requested code edits are complete.',
 		'`+review` builds the review from changes recorded in the current chat/session, so running it before editing code will miss the later changes.',
+		'Review capture only works for a Codex thread that contains Codex-made code changes in this workspace. Run it at the end of the thread after code changes and verification.',
 		'The extension writes a raw scoped git diff file in `.reviews/` and opens it as a review page.',
 		'',
 		'## File Path',

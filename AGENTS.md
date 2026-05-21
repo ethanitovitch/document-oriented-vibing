@@ -24,6 +24,7 @@ Do not create `.reviews/*.json` unless the user explicitly asks for a structured
 ## +review workflow
 
 For `+review`, use this lightweight workflow directly after all requested source edits are complete. `+review` builds the review from changes recorded in the current chat/session, so running it before editing code will miss the later changes.
+Review capture only works when the selected/current Codex thread contains Codex-made code changes in this workspace. Run it at the end of the thread, after code changes and verification are complete.
 
 Run `code --open-url "vscode://<installed-extension-id>/captureReview?name=<kebab-case-title>.diff&threadId=$CODEX_THREAD_ID"`, such as `code --open-url "vscode://<installed-extension-id>/captureReview?name=auth-review.diff&threadId=$CODEX_THREAD_ID"`.
 

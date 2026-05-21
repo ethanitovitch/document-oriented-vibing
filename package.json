@@ -4,6 +4,15 @@
   "description": "Generate digrams of your features before vibing them. Get more control of your code",
   "version": "0.0.1",
   "publisher": "ethanitovitch",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ethanitovitch/document-oriented-vibing.git"
+  },
+  "homepage": "https://github.com/ethanitovitch/document-oriented-vibing#readme",
+  "bugs": {
+    "url": "https://github.com/ethanitovitch/document-oriented-vibing/issues"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -55,7 +64,8 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vscode-test",
-    "deploy": "vsce package --no-dependencies && code --install-extension document-oriented-vibing-0.0.1.vsix --force && echo 'Installed! Reload your editor to activate.'"
+    "deploy": "scripts/update-extension.sh",
+    "update-extension": "scripts/update-extension.sh"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
