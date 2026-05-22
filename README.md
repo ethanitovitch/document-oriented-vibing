@@ -105,6 +105,7 @@ Authenticate with email/password, return a JWT.
 - **Scroll to zoom** — Ctrl/Cmd + scroll to zoom in/out on the diagram
 - **Any Mermaid diagram** — flowchart, sequence, class, state, ER, journey, gantt
 - **Review workflow** — `+review` quickly captures and opens raw git diff output
+- **LLM context copy** — double-tap `Cmd+C` to copy selected code with its file path and line range for pasting into an LLM
 - **LLM-native** — auto-injects Claude instructions and a repo-scoped Codex skill so your LLM knows the format
 - **Auto-open** — new feature diagrams and review files open when the LLM creates them
 
@@ -117,6 +118,7 @@ Authenticate with email/password, return a JWT.
 | `DOV: Open Feature` | Open a specific feature diagram |
 | `DOV: +review` | Open the latest review diff |
 | `DOV: Capture Codex Review` | Capture files written by the previous Codex turn into a review diff |
+| `DOV: Copy Selection for LLM` | Copy the current selection, or current line, with `path:line` context. Shortcut: double-tap `Cmd+C` on macOS or `Ctrl+C` elsewhere |
 
 ## Agent Review Command
 

@@ -20,7 +20,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onUri"
+    "onUri",
+    "onCommand:document-oriented-vibing.copyForLlm",
+    "onCommand:document-oriented-vibing.copyForLlmShortcut"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -48,6 +50,18 @@
       {
         "command": "document-oriented-vibing.captureReview",
         "title": "DOV: Capture Codex Review"
+      },
+      {
+        "command": "document-oriented-vibing.copyForLlm",
+        "title": "DOV: Copy Selection for LLM"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "document-oriented-vibing.copyForLlmShortcut",
+        "key": "ctrl+c",
+        "mac": "cmd+c",
+        "when": "editorTextFocus"
       }
     ]
   },

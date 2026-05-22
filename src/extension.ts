@@ -25,6 +25,7 @@ const CLAUDE_INSTRUCTION_FILE_NAME = 'CLAUDE.md';
 const CODEX_INSTRUCTION_FILE_NAME = 'AGENTS.md';
 const DOV_SKILL_NAME = 'document-oriented-vibing';
 const execFileAsync = promisify(execFile);
+const COPY_FOR_LLM_DOUBLE_TAP_MS = 650;
 
 type ReviewStatus = 'pending' | 'approved' | 'rejected';
 
@@ -126,6 +127,7 @@ let activeDiffReview: {
 	reviewUri: vscode.Uri;
 	files: DiffReviewFile[];
 } | undefined;
+let pendingCopyForLlmShortcut: { editorState: string; timestamp: number } | undefined;
 let reviewCodeLensProvider: ReviewCodeLensProvider | undefined;
 let reviewBaseContentProvider: DiffReviewBaseContentProvider | undefined;
 
@@ -165,6 +167,14 @@ export function activate(context: vscode.ExtensionContext) {
 	const captureReviewDisposable = vscode.commands.registerCommand(
 		'document-oriented-vibing.captureReview',
 		(options?: string | CaptureReviewOptions) => void captureCodexReview(context, normalizeCaptureReviewOptions(options)),
+	);
+	const copyForLlmDisposable = vscode.commands.registerCommand(
+		'document-oriented-vibing.copyForLlm',
+		() => void copySelectionForLlm(),
+	);
+	const copyForLlmShortcutDisposable = vscode.commands.registerCommand(
+		'document-oriented-vibing.copyForLlmShortcut',
+		() => void handleCopyForLlmShortcut(),
 	);
 	const uriHandlerDisposable = vscode.window.registerUriHandler({
 		handleUri: (uri) => void handleDovUri(context, uri),
@@ -254,6 +264,8 @@ export function activate(context: vscode.ExtensionContext) {
 		settingsDisposable,
 		reviewDisposable,
 		captureReviewDisposable,
+		copyForLlmDisposable,
+		copyForLlmShortcutDisposable,
 		uriHandlerDisposable,
 		noopDisposable,
 		approveDiffChangeDisposable,
@@ -276,6 +288,131 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
+
+// ---------------------------------------------------------------------------
+// LLM copy helper
+// ---------------------------------------------------------------------------
+
+async function handleCopyForLlmShortcut(): Promise<void> {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor) {
+		await vscode.commands.executeCommand('editor.action.clipboardCopyAction');
+		return;
+	}
+
+	const now = Date.now();
+	const editorState = getLlmCopyEditorState(editor);
+	if (
+		pendingCopyForLlmShortcut &&
+		pendingCopyForLlmShortcut.editorState === editorState &&
+		now - pendingCopyForLlmShortcut.timestamp <= COPY_FOR_LLM_DOUBLE_TAP_MS
+	) {
+		pendingCopyForLlmShortcut = undefined;
+		await copySelectionForLlm();
+		return;
+	}
+
+	pendingCopyForLlmShortcut = { editorState, timestamp: now };
+	await vscode.commands.executeCommand('editor.action.clipboardCopyAction');
+}
+
+async function copySelectionForLlm(): Promise<void> {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor) {
+		void vscode.window.showWarningMessage('Open a file before copying context for an LLM.');
+		return;
+	}
+
+	const snippets = getLlmCopySnippets(editor);
+	if (snippets.length === 0) {
+		return;
+	}
+
+	const copiedText = snippets.map(formatLlmCopySnippet).join('\n\n');
+	await vscode.env.clipboard.writeText(copiedText);
+	const firstLocation = snippets[0].location;
+	const suffix = snippets.length === 1 ? '' : ` and ${snippets.length - 1} more selection${snippets.length === 2 ? '' : 's'}`;
+	void vscode.window.setStatusBarMessage(`DOV: Copied ${firstLocation}${suffix} for LLM.`, 2500);
+}
+
+interface LlmCopySnippet {
+	location: string;
+	languageId: string;
+	text: string;
+}
+
+function getLlmCopySnippets(editor: vscode.TextEditor): LlmCopySnippet[] {
+	const selections = editor.selections.length > 0 ? editor.selections : [editor.selection];
+	const nonEmptySelections = selections.filter((selection) => !selection.isEmpty);
+	const targetSelections = nonEmptySelections.length > 0 ? nonEmptySelections : [editor.selection];
+
+	return targetSelections.map((selection) => getLlmCopySnippet(editor, selection));
+}
+
+function getLlmCopyEditorState(editor: vscode.TextEditor): string {
+	const selections = editor.selections.map((selection) => [
+		selection.anchor.line,
+		selection.anchor.character,
+		selection.active.line,
+		selection.active.character,
+	].join(':'));
+	return `${editor.document.uri.toString()}|${selections.join(',')}`;
+}
+
+function getLlmCopySnippet(editor: vscode.TextEditor, selection: vscode.Selection): LlmCopySnippet {
+	const document = editor.document;
+	const range = selection.isEmpty
+		? document.lineAt(selection.active.line).range
+		: new vscode.Range(selection.start, selection.end);
+	const startLine = range.start.line + 1;
+	const endLine = getInclusiveEndLine(range);
+	const location = formatLlmCopyLocation(document.uri, startLine, endLine);
+
+	return {
+		location,
+		languageId: document.languageId,
+		text: document.getText(range),
+	};
+}
+
+function getInclusiveEndLine(range: vscode.Range): number {
+	if (range.isEmpty) {
+		return range.start.line + 1;
+	}
+	if (range.end.character === 0 && range.end.line > range.start.line) {
+		return range.end.line;
+	}
+	return range.end.line + 1;
+}
+
+function formatLlmCopyLocation(uri: vscode.Uri, startLine: number, endLine: number): string {
+	const filePath = getReadableFilePath(uri);
+	const lineSuffix = startLine === endLine ? String(startLine) : `${startLine}-${endLine}`;
+	return `${filePath}:${lineSuffix}`;
+}
+
+function getReadableFilePath(uri: vscode.Uri): string {
+	const relativePath = getWorkspaceRelativePath(uri);
+	if (relativePath) {
+		return relativePath;
+	}
+	if (uri.scheme === 'file') {
+		return uri.fsPath.replace(/\\/g, '/');
+	}
+	return uri.toString();
+}
+
+function formatLlmCopySnippet(snippet: LlmCopySnippet): string {
+	const fence = getMarkdownFence(snippet.text);
+	const text = snippet.text.endsWith('\n') ? snippet.text : `${snippet.text}\n`;
+	return `${snippet.location}\n${fence}${snippet.languageId}\n${text}${fence}`;
+}
+
+function getMarkdownFence(text: string): string {
+	const backtickRuns = text.match(/`+/g) ?? [];
+	const longestRun = backtickRuns.reduce((longest, run) => Math.max(longest, run.length), 0);
+	return '`'.repeat(Math.max(3, longestRun + 1));
+}
 
 // ---------------------------------------------------------------------------
 // Home panel
