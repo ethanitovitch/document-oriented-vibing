@@ -1,6 +1,6 @@
 # Document Oriented Vibing (DOV)
 
-A VS Code extension for reviewing AI-written code before it disappears into your project.
+A VS Code extension that gives you the same cursor type experience in VScode with Codex
 
 DOV turns Codex changes into a focused review surface where you can inspect hunks, jump to the changed file, and approve or reject changes at the chunk level. It also includes `Cmd+C`/`Ctrl+C` double-tap context copying and feature diagrams.
 
