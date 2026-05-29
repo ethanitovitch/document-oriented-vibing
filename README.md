@@ -1,6 +1,8 @@
 # Document Oriented Vibing (DOV)
 
-A VS Code extension that lets you plan features as Mermaid diagrams before writing code. Tell your AI assistant what to build, see the architecture as a live diagram, iterate on it, then generate the code.
+A VS Code extension that gives you the same cursor type features using codex in vscode. This includes `CMD + C + C` which copies the snippet including the file and line number and a clean review page where you can approve reject at the chunk level and see specific changes in a file.
+
+Additionally, you can plan features as Mermaid diagrams before writing code. Tell your AI assistant what to build, see the architecture as a live diagram, iterate on it, then generate the code.
 
 Stop vibing blindly. See what you're building first.
 
@@ -38,10 +40,7 @@ code --install-extension document-oriented-vibing-0.0.1.vsix --force
 
 1. Open any project in VS Code
 2. Run `DOV: Home` from the command palette (`Ctrl/Cmd+Shift+P`)
-3. Create a new feature — this creates a `.features/` folder with a `.md` file
-4. Edit the markdown file with a Mermaid diagram, or let your LLM do it
-
-The extension automatically injects instructions into your project's `CLAUDE.md`, adds a small Codex `AGENTS.md` pointer, and installs a repo-scoped DOV skill under `.agents/skills/`.
+3. Add the snippet to you `AGENTS.md` and skills by clicking the configure button
 
 ## Workflow Modes
 

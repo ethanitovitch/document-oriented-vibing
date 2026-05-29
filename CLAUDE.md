@@ -51,3 +51,111 @@ flowchart LR
 ```
 
 Diagram comes first. Use bare relative paths (like `src/foo/bar.ts`) in node labels to make nodes clickable. **Never prefix paths with `@`** — it conflicts with Mermaid syntax. Any valid Mermaid diagram type works: flowchart, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, journey, gantt.
+
+<!-- dov-start v20 -->
+## Feature Diagrams (document-oriented-vibing)
+
+This project uses a VS Code extension to plan features as diagrams.
+Features are `.md` files in `.features/` at the workspace root.
+The extension auto-opens the diagram when a new file is created.
+
+Reviews are raw `.diff` files in `.reviews/` at the workspace root.
+The extension auto-opens diagrams and reviews when new files are created.
+
+**IMPORTANT: Only create `.features/*.md` files when the user says `+plan` or `+show`.**
+Only create `.reviews/*.diff` files when the user says `+review`.
+If none of those modes are specified, do NOT create a feature or review file.
+
+### Modes
+
+- **`+plan`** — Diagram only. Placeholder file paths. No source code.
+- **`+show`** — Write code first, then diagram with real paths.
+- **`+review`** — After code edits are complete, open the DOV capture URI with the editor CLI.
+
+### File format
+
+Use the compact DOV diagram syntax (NOT mermaid). The extension translates it automatically.
+
+```
+# Feature: <title>
+
+## Diagram
+
+```dov
+<DOV diagram>
+```
+
+## Summary
+<intent, constraints, behavior>
+
+## Details
+- **NodeName**: hover tooltip text
+```
+
+### Review file format
+
+When the user says `+review`, open the DOV capture URI only after all requested code edits are complete.
+`+review` builds the review from changes recorded in the current chat/session, so running it before editing code will miss the later changes.
+Review capture only works for a Codex thread that contains Codex-made code changes in this workspace. It should be the final step at the end of the thread, after code changes and verification.
+
+Run `code --open-url "vscode://ethanitovitch.document-oriented-vibing/captureReview?name=<kebab-case-title>.diff&threadId=$CODEX_THREAD_ID"`.
+This opens a VS Code URI and requires GUI access. If running in a sandbox, request outside-sandbox/escalated execution up front.
+Do not treat exit code 0 alone as proof that the extension opened; Electron/macOS may print GUI handoff errors such as `task_name_for_pid` even when the CLI exits 0.
+After running the URI command, verify `.reviews/<name>.diff` exists before saying the review opened.
+
+The extension creates `.reviews/` if needed, writes `.reviews/<name>.diff`, and opens the DOV review panel.
+Do not write review summaries, JSON, findings, status fields, or other metadata unless the user explicitly asks for a structured review.
+
+### DOV syntax
+
+Header: `flow LR` (or TD/RL/BT). Also: `seq`, `class`, `state`, `er`.
+
+Nodes (defined inline on first use):
+- `Name[Label|path/to/file.ts:line]` — rectangle
+- `Name{Label|path/to/file.ts}` — diamond (decision)
+- `Name(Label)` — rounded/stadium
+- `Name:Label text` — plain rounded
+
+`|` separates label lines. Include file paths to make nodes clickable.
+Append `:lineNumber` to jump to a specific line.
+
+**CRITICAL: File paths MUST be the full relative path from the workspace root.**
+Use `src/auth/controller.ts`, NOT `controller.ts` or `auth/controller.ts`.
+The extension resolves paths from the workspace root — partial paths will not open.
+
+Edges:
+- `A >label> B` — edge with label
+- `A > B` — edge without label
+
+Sequence diagrams:
+- `A ->label-> B` — solid arrow
+- `A --label--> B` — dashed arrow
+
+### Example
+
+```
+# Feature: user login
+
+## Diagram
+
+```dov
+flow LR
+Client(Browser) >POST /login> Auth[AuthController|src/auth/controller.ts:15]
+Auth >credentials> Validate{validateCredentials|src/auth/validate.ts:8}
+Validate >valid user> Token[issueJWT|src/auth/token.ts:22]
+Validate >invalid> Err:401 Unauthorized
+Token >JWT string> Auth
+Auth >audit event> Log[logAttempt|src/auth/audit.ts:5]
+```
+
+## Summary
+Authenticate with email/password, return a JWT, and log the attempt.
+
+## Details
+- **Auth**: Express POST handler, validates body, delegates to services.
+- **Validate**: bcrypt comparison, returns User or null.
+- **Token**: Signs RS256 token, 24h expiry, userId + role claims.
+- **Log**: Writes to audit_log for success and failure.
+```
+
+<!-- dov-end -->

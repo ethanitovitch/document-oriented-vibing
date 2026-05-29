@@ -9,3 +9,5 @@ out/
 VIP/
 invalid/
 retry/
+.agents
+.features
