@@ -1,23 +1,57 @@
 # Document Oriented Vibing (DOV)
 
-A VS Code extension that gives you the same cursor type features using codex in vscode. This includes `CMD + C + C` which copies the snippet including the file and line number and a clean review page where you can approve reject at the chunk level and see specific changes in a file.
+A VS Code extension for reviewing AI-written code before it disappears into your project.
 
-Additionally, you can plan features as Mermaid diagrams before writing code. Tell your AI assistant what to build, see the architecture as a live diagram, iterate on it, then generate the code.
-
-Stop vibing blindly. See what you're building first.
+DOV turns Codex changes into a focused review surface where you can inspect hunks, jump to the changed file, and approve or reject changes at the chunk level. It also includes `Cmd+C`/`Ctrl+C` double-tap context copying and feature diagrams.
 
 ![VS Code](https://img.shields.io/badge/VS%20Code-Extension-blue)
+![Reviews](https://img.shields.io/badge/Review-Diff%20Hunks-green)
 ![Mermaid](https://img.shields.io/badge/Diagrams-Mermaid-ff69b4)
+
+![DOV home screen](assets/home.png)
 
 ## Why?
 
-When you vibe-code with an LLM, you have no idea what it's actually building. DOV fixes that:
+AI coding tools can make large edits quickly, but normal diffs are a poor review interface when you are moving fast. DOV makes review the center of the workflow:
 
-1. Tell your LLM `+plan auth system` — it creates a Mermaid diagram of the planned architecture. No code yet.
-2. Review the diagram — see every component, file path, and data flow. Iterate until you're happy.
-3. Tell your LLM `+show auth system` — it builds the feature, then shows you the diagram with real file paths.
-4. Click any node to jump to the code. Hover for details.
-5. Tell your LLM `+review` — it captures the current git diff and opens it in DOV.
+1. Ask Codex to make a change in your project.
+2. Tell the assistant `+review`.
+3. DOV captures the code changes from the current Codex thread.
+4. Review each file and hunk in VS Code.
+5. Approve, reject, or revisit changes without losing the context of what the AI did.
+
+Additionally if your forgot to add `+review` to your prompt, you can always capture the review from any old conversation in the home screen.
+
+![DOV review screen](assets/review.png)
+
+## Review Workflow
+
+Use `+review` after Codex has finished editing code:
+
+```text
++review
+```
+
+The assistant opens DOV's VS Code URI handler. The extension then creates a raw diff review in `.reviews/`, opens the review panel, and tracks approve/reject state in a sibling `.state.json` file.
+
+Review features:
+
+- **Thread-aware capture** — captures Codex-written changes from the active thread.
+- **Hunk-level review** — approve, reject, or undo individual changed chunks.
+- **File-level review** — approve or reject all hunks in a file.
+- **Jump-to-file navigation** — select a hunk and open the changed source file in VS Code.
+- **Inline status** — pending, approved, and rejected states are visible while reviewing.
+- **Persistent state** — review decisions are saved next to the `.diff` artifact.
+- **LLM-friendly copy** — copy a file or hunk with enough context to ask an assistant for follow-up changes.
+
+## Quick Start
+
+1. Open any project in VS Code.
+2. Run `DOV: Home` from the command palette (`Ctrl/Cmd+Shift+P`).
+3. Click the setup/configure button to add the DOV instructions to your `AGENTS.md` and repo-scoped skill.
+4. Make code changes with Codex.
+5. Ask Codex for `+review`.
+6. Review the generated `.reviews/*.diff` in DOV.
 
 ## Install
 
@@ -36,88 +70,28 @@ vsce package --no-dependencies
 code --install-extension document-oriented-vibing-0.0.1.vsix --force
 ```
 
-## Quick Start
-
-1. Open any project in VS Code
-2. Run `DOV: Home` from the command palette (`Ctrl/Cmd+Shift+P`)
-3. Add the snippet to you `AGENTS.md` and skills by clicking the configure button
-
 ## Workflow Modes
 
 Prefix your prompt to the LLM with a mode:
 
 | Mode | What happens |
 |------|-------------|
-| `+plan` | LLM creates the diagram with placeholder file paths. No code written. Review and iterate first. |
-| `+show` | LLM writes the actual code, then creates the diagram with real file paths. |
-| `+review` | LLM opens the DOV capture URI; the extension writes and opens the review diff. |
+| `+review` | Captures Codex-made changes from the current thread and opens the DOV review panel. |
+| `+show` | LLM writes the actual code, then creates a diagram with real file paths. |
+| `+plan` | LLM creates a diagram with placeholder file paths. No code written. |
 
 No mode writes files unless the prompt explicitly asks for it.
-
-### Example
-
-```
-+plan user authentication with JWT and rate limiting
-```
-
-The LLM creates `.features/user-auth.md` and opens the diagram:
-
-```mermaid
-flowchart LR
-    Client([Browser]) -->|POST /login| Auth["AuthController\nsrc/auth/controller.ts"]
-    Auth -->|credentials| Validate{"validateCredentials\nsrc/auth/validate.ts"}
-    Validate -->|valid| Token["issueJWT\nsrc/auth/token.ts"]
-    Validate -->|invalid| Err([401 Unauthorized])
-    Token -->|JWT| Auth
-    Auth -->|audit event| Log["logAttempt\nsrc/auth/audit.ts"]
-```
-
-## Feature File Format
-
-Features live as `.md` files in `.features/` at your project root:
-
-```markdown
-# Feature: user login
-
-## Diagram
-
-` ` `mermaid
-flowchart LR
-    Client([Browser]) -->|POST /login| Auth["AuthController\nsrc/auth/controller.ts:15"]
-    Auth --> Validate{"validateCredentials\nsrc/auth/validate.ts:8"}
-` ` `
-
-## Summary
-Authenticate with email/password, return a JWT.
-
-## Details
-- **AuthController**: Express route handler, validates request body.
-- **validateCredentials**: bcrypt comparison against users table.
-```
-
-## Features
-
-- **Live preview** — diagram updates as the file changes (by you, LLM, or git)
-- **Clickable nodes** — file paths in node labels open that file in VS Code
-- **Line numbers** — append `:42` to a path to jump to a specific line
-- **Hover tooltips** — `## Details` section adds per-node descriptions on hover
-- **Scroll to zoom** — Ctrl/Cmd + scroll to zoom in/out on the diagram
-- **Any Mermaid diagram** — flowchart, sequence, class, state, ER, journey, gantt
-- **Review workflow** — `+review` quickly captures and opens raw git diff output
-- **LLM context copy** — double-tap `Cmd+C` to copy selected code with its file path and line range for pasting into an LLM
-- **LLM-native** — auto-injects Claude instructions and a repo-scoped Codex skill so your LLM knows the format
-- **Auto-open** — new feature diagrams and review files open when the LLM creates them
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `DOV: Home` | Open the home screen with all features |
-| `DOV: Quick New Feature` | Create a new feature file |
-| `DOV: Open Feature` | Open a specific feature diagram |
-| `DOV: +review` | Open the latest review diff |
-| `DOV: Capture Codex Review` | Capture files written by the previous Codex turn into a review diff |
-| `DOV: Copy Selection for LLM` | Copy the current selection, or current line, with `path:line` context. Shortcut: double-tap `Cmd+C` on macOS or `Ctrl+C` elsewhere |
+| `DOV: Home` | Open the home screen with features, reviews, and Codex threads. |
+| `DOV: +review` | Open the latest review diff. |
+| `DOV: Capture Codex Review` | Capture files written by a Codex thread into a review diff. |
+| `DOV: Copy Selection for LLM` | Copy the current selection, or current line, with `path:line` context. Shortcut: double-tap `Cmd+C` on macOS or `Ctrl+C` elsewhere. |
+| `DOV: Quick New Feature` | Create a new feature diagram file. |
+| `DOV: Open Feature` | Open a specific feature diagram. |
 
 ## Agent Review Command
 
@@ -131,16 +105,45 @@ This opens a VS Code URI and requires GUI access. If running in a sandbox, agent
 
 The editor routes the URI to the extension. The extension creates `.reviews/` if needed, writes `.reviews/auth-review.diff`, and opens the review panel.
 
+## Feature Diagrams
+
+DOV can also plan and visualize features as diagrams. This is useful before writing code, but it is secondary to the review workflow.
+
+```text
++plan user authentication with JWT and rate limiting
+```
+
+The LLM creates `.features/user-auth.md` and DOV opens the diagram:
+
+```mermaid
+flowchart LR
+    Client([Browser]) -->|POST /login| Auth["AuthController\nsrc/auth/controller.ts"]
+    Auth -->|credentials| Validate{"validateCredentials\nsrc/auth/validate.ts"}
+    Validate -->|valid| Token["issueJWT\nsrc/auth/token.ts"]
+    Validate -->|invalid| Err([401 Unauthorized])
+    Token -->|JWT| Auth
+    Auth -->|audit event| Log["logAttempt\nsrc/auth/audit.ts"]
+```
+
+Feature diagram capabilities:
+
+- **Live preview** — diagrams update as files change.
+- **Clickable nodes** — file paths in node labels open that file in VS Code.
+- **Line numbers** — append `:42` to a path to jump to a specific line.
+- **Hover tooltips** — `## Details` adds per-node descriptions.
+- **Scroll to zoom** — Ctrl/Cmd + scroll to zoom in or out.
+- **Any Mermaid diagram** — flowchart, sequence, class, state, ER, journey, gantt.
+
 ## How It Works Under the Hood
 
-```
-.features/
-├── schema.md          # Auto-generated format reference
-├── user-login.md      # Your feature diagrams
-└── order-pipeline.md
-
+```text
 .reviews/
-└── auth-review.diff   # Raw git diff output from +review
+├── auth-review.diff
+└── auth-review.diff.state.json
+
+.features/
+├── user-login.md
+└── order-pipeline.md
 
 .agents/
 └── skills/
@@ -152,9 +155,9 @@ The editor routes the URI to the extension. The extension creates `.reviews/` if
             └── review-schema.md
 ```
 
-The extension watches `.features/*.md` for changes and renders them as interactive diagrams in a webview panel. It also watches `.reviews/*.diff` and `.reviews/*.json` and opens a review page for the latest review artifact. Diff review approvals are saved to a sibling `.state.json` file.
+The extension watches `.reviews/*.diff` and `.reviews/*.json` and opens a review page for the latest review artifact. Diff review approvals are saved to a sibling `.state.json` file.
 
-From `DOV: Home`, DOV checks your `CLAUDE.md`, Codex `AGENTS.md` pointer, and repo-scoped DOV skill for its versioned markers. The setup button adds or updates any missing pieces.
+It also watches `.features/*.md` for changes and renders them as interactive diagrams in a webview panel. From `DOV: Home`, DOV checks your `CLAUDE.md`, Codex `AGENTS.md` pointer, and repo-scoped DOV skill for versioned markers. The setup button adds or updates any missing pieces.
 
 ## Contributing
 
