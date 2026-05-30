@@ -1,9 +1,10 @@
 {
   "name": "document-oriented-vibing",
   "displayName": "document-oriented-vibing",
-  "description": "Generate digrams of your features before vibing them. Get more control of your code",
-  "version": "0.0.1",
-  "publisher": "ethanitovitch",
+  "description": "Get the same cursor features in VSCode with Codex",
+  "version": "0.0.2",
+  "publisher": "ethanito",
+  "icon": "assets/icon.png",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -79,7 +80,8 @@
     "lint": "eslint src",
     "test": "vscode-test",
     "deploy": "scripts/update-extension.sh",
-    "update-extension": "scripts/update-extension.sh"
+    "update-extension": "scripts/update-extension.sh",
+    "publish:marketplace": "scripts/publish-marketplace.sh"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

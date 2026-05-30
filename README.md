@@ -8,6 +8,8 @@ DOV turns Codex changes into a focused review surface where you can inspect hunk
 ![Reviews](https://img.shields.io/badge/Review-Diff%20Hunks-green)
 ![Mermaid](https://img.shields.io/badge/Diagrams-Mermaid-ff69b4)
 
+![Document Oriented Vibing review workflow hero](assets/dov-hero.png)
+
 ![DOV home screen](assets/home.png)
 
 ## Why?
