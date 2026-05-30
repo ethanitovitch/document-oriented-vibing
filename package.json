@@ -2,7 +2,7 @@
   "name": "document-oriented-vibing",
   "displayName": "document-oriented-vibing",
   "description": "Get the same cursor features in VSCode with Codex",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "ethanito",
   "icon": "assets/icon.png",
   "license": "MIT",
