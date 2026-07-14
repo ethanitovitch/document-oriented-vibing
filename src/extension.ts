@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { promisify } from 'util';
 import * as vscode from 'vscode';
+import { extractApplyPatchInputs } from './codex-session';
 import {
 	createFeatureTemplate,
 	getCodexAgentsInstructions,
@@ -1904,14 +1905,12 @@ function extractCodexPatchHunksFromRange(
 			!record.timestamp ||
 			record.timestamp <= startTime ||
 			record.timestamp >= endTime ||
-			record.type !== 'response_item' ||
-			record.payload?.type !== 'custom_tool_call' ||
-			record.payload.name !== 'apply_patch' ||
-			typeof record.payload.input !== 'string'
+			record.type !== 'response_item'
 		) {
 			return [];
 		}
-		return parseApplyPatchHunks(record.payload.input, workspaceRoot);
+		return extractApplyPatchInputs(record)
+			.flatMap((patchInput) => parseApplyPatchHunks(patchInput, workspaceRoot));
 	});
 }
 
@@ -2117,16 +2116,15 @@ function extractCodexWrittenFilesFromRange(
 			!record.timestamp ||
 			record.timestamp <= startTime ||
 			record.timestamp >= endTime ||
-			record.type !== 'response_item' ||
-			record.payload?.type !== 'custom_tool_call' ||
-			record.payload.name !== 'apply_patch' ||
-			typeof record.payload.input !== 'string'
+			record.type !== 'response_item'
 		) {
 			continue;
 		}
 
-		for (const filePath of extractPatchFilePaths(record.payload.input, workspaceRoot)) {
-			files.add(filePath);
+		for (const patchInput of extractApplyPatchInputs(record)) {
+			for (const filePath of extractPatchFilePaths(patchInput, workspaceRoot)) {
+				files.add(filePath);
+			}
 		}
 	}
 
