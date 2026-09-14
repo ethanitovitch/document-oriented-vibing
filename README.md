@@ -26,6 +26,18 @@ Additionally if your forgot to add `+review` to your prompt, you can always capt
 
 ![DOV review screen](assets/review.png)
 
+## Agent tabs and status
+
+Open the **Codex sidebar** to see its **Agents** section. Click a conversation to switch the Codex chat in place. The **+** button starts a new chat in the same sidebar. There is no need to open DOV Home or Explorer. You can drag the Agents section header above the Codex chat if you prefer it at the top.
+
+**DOV: New Agent Tab** remains available separately if you want editor tabs.
+
+The list refreshes every five seconds while visible and shows up to 50 recent local conversations for the open workspace folders, including conversations with no code edits. It reads `CODEX_HOME/sessions` (default `~/.codex/sessions`). Working, Finished and Interrupted are inferred from recorded lifecycle events. A working session with no log updates for ten minutes shows Unknown; approval/queued state and cloud-only conversations are not available from these logs.
+
+The sidebar section is contributed to Codex's view container and requires the OpenAI Codex extension. Switching uses its URI handler at `<editor-scheme>://openai.chatgpt/local/<id>`, inspected in Codex 26.901.22334. That route is an internal integration and may change. The sidebar **+** uses `chatgpt.newChat`; separate editor tabs use `chatgpt.newCodexPanel`.
+
+Capture supports direct and exec-wrapped `apply_patch` calls, including namespaced calls and JSON tool arguments. It uses the latest prompt containing recognized patches among the latest two prompts. Shell/script file writes, deleted-file reconstruction and dynamically constructed patch strings are not captured. When capturing from the command palette, DOV asks you to choose a conversation if no thread ID was supplied.
+
 ## Review Workflow
 
 Use `+review` after Codex has finished editing code:

@@ -409,7 +409,7 @@ export function HomeApp() {
 									style={inputStyle(palette)}
 									type="text"
 									value={threadSearchQuery}
-									placeholder={codexThreads.length === 0 ? 'No Codex threads with code changes found' : 'Search Codex threads...'}
+									placeholder={codexThreads.length === 0 ? 'No local Codex threads found' : 'Search Codex threads...'}
 									disabled={codexThreads.length === 0}
 									autoComplete="off"
 									spellCheck={false}

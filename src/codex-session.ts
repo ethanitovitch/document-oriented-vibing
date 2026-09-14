@@ -4,6 +4,7 @@ export interface CodexToolCallRecord {
 		type?: string;
 		name?: string;
 		input?: string;
+		arguments?: string;
 	};
 }
 
@@ -14,20 +15,29 @@ export interface CodexToolCallRecord {
 export function extractApplyPatchInputs(record: CodexToolCallRecord): string[] {
 	if (
 		record.type !== 'response_item' ||
-		record.payload?.type !== 'custom_tool_call' ||
-		typeof record.payload.input !== 'string'
+		!['custom_tool_call', 'function_call'].includes(record.payload?.type ?? '')
 	) {
 		return [];
 	}
 
-	if (record.payload.name === 'apply_patch') {
-		return [record.payload.input];
+	const payload = record.payload!;
+	const name = payload.name?.split('.').at(-1);
+	let input = payload.input;
+	if (!input && typeof payload.arguments === 'string') {
+		try {
+			const args = JSON.parse(payload.arguments);
+			input = typeof args === 'string' ? args : args?.input ?? args?.patch ?? args?.code;
+		} catch { return []; }
 	}
-	if (record.payload.name !== 'exec' || !record.payload.input.includes('tools.apply_patch')) {
+	if (typeof input !== 'string') { return []; }
+	if (name === 'apply_patch') {
+		return [input];
+	}
+	if (name !== 'exec' || !input.includes('tools.apply_patch')) {
 		return [];
 	}
 
-	const patches = extractJavaScriptStringLiterals(record.payload.input)
+	const patches = extractJavaScriptStringLiterals(input)
 		.filter((value) => value.includes('*** Begin Patch') && value.includes('*** End Patch'));
 	return [...new Set(patches)];
 }

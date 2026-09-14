@@ -7,11 +7,14 @@ import { extractApplyPatchInputs } from '../codex-session';
 // import * as myExtension from '../../extension';
 
 suite('Extension Test Suite', () => {
-	vscode.window.showInformationMessage('Start all tests.');
-
-	test('Sample test', () => {
-		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
+	test('activates the extension and registers agent commands', async () => {
+		const extension = vscode.extensions.getExtension('ethanitovitch.document-oriented-vibing');
+		assert.ok(extension);
+		await extension.activate();
+		const commands = await vscode.commands.getCommands(true);
+		for (const name of ['newAgent', 'newSidebarAgent', 'openAgent', 'refreshAgents']) {
+			assert.ok(commands.includes(`document-oriented-vibing.${name}`));
+		}
 	});
 
 	test('extracts legacy apply_patch tool calls', () => {

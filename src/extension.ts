@@ -1,10 +1,11 @@
 import { execFile } from 'child_process';
 import * as fs from 'fs/promises';
-import * as os from 'os';
 import * as path from 'path';
 import { promisify } from 'util';
 import * as vscode from 'vscode';
 import { extractApplyPatchInputs } from './codex-session';
+import { registerAgentsView } from './agents-view';
+import { codexSessionsRoot, sessionMetadata, parseSessionLine, userPromptTimes } from './codex-threads';
 import {
 	createFeatureTemplate,
 	getCodexAgentsInstructions,
@@ -133,6 +134,7 @@ let reviewCodeLensProvider: ReviewCodeLensProvider | undefined;
 let reviewBaseContentProvider: DiffReviewBaseContentProvider | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
+	registerAgentsView(context);
 	const homeDisposable = vscode.commands.registerCommand(
 		'document-oriented-vibing.home',
 		() => openHomePanel(context),
@@ -694,7 +696,8 @@ async function captureCodexReview(context: vscode.ExtensionContext, options: Cap
 		return;
 	}
 
-	const { reviewName, threadId } = options;
+	const { reviewName } = options;
+	let threadId = options.threadId || process.env.CODEX_THREAD_ID;
 	const normalizedReviewName = normalizeReviewFileName(reviewName?.trim() || getDefaultReviewName());
 	if (!normalizedReviewName || normalizedReviewName.toLowerCase().endsWith('.json')) {
 		void vscode.window.showWarningMessage('Enter a valid .diff review name.');
@@ -702,13 +705,29 @@ async function captureCodexReview(context: vscode.ExtensionContext, options: Cap
 	}
 
 	try {
+		if (!threadId) {
+			const threads = await readCodexThreadEntries();
+			if (!threads.length) {
+				void vscode.window.showInformationMessage('No local Codex conversations found in this workspace.');
+				return;
+			}
+			const picked = await vscode.window.showQuickPick(threads.map(thread => ({
+				label: thread.title, description: thread.ageLabel, detail: thread.id, id: thread.id,
+			})), { placeHolder: 'Choose the Codex conversation to capture' });
+			if (!picked) { return; }
+			threadId = picked.id;
+		}
 		const patchHunks = await readCodexPatchHunksForReview(workspaceFolder.uri.fsPath, threadId);
 		if (patchHunks.length === 0) {
-			void vscode.window.showErrorMessage('No Codex-written changes found for this review.');
+			void vscode.window.showErrorMessage('No supported apply_patch edits found in the latest two prompts. Shell/script edits are not captured.');
 			return;
 		}
 
 		const diff = await buildCodexThreadDiff(workspaceFolder.uri, patchHunks);
+		if (!diff.trim()) {
+			void vscode.window.showWarningMessage('The captured patches no longer match the current files; no review was written.');
+			return;
+		}
 		const reviewsFolderUri = vscode.Uri.joinPath(workspaceFolder.uri, '.reviews');
 		await vscode.workspace.fs.createDirectory(reviewsFolderUri);
 
@@ -1819,14 +1838,7 @@ async function readCodexWrittenFilesForPreviousTurn(workspaceRoot: string, reque
 		.split(/\r?\n/)
 		.filter(Boolean)
 		.flatMap((line) => parseCodexSessionRecord(line));
-	const userTimestamps = records
-		.filter((record) => (
-			record.type === 'response_item' &&
-			record.payload?.type === 'message' &&
-			record.payload.role === 'user' &&
-			record.timestamp
-		))
-		.map((record) => record.timestamp as string);
+	const userTimestamps = userPromptTimes(records);
 
 	const ranges: Array<[string, string]> = [];
 	const latestUserTime = userTimestamps.at(-1);
@@ -1867,14 +1879,7 @@ async function readCodexPatchHunksForReview(workspaceRoot: string, requestedThre
 }
 
 function extractRecentCodexPatchHunksForReview(records: CodexSessionRecord[], workspaceRoot: string): CodexPatchHunk[] {
-	const userTimestamps = records
-		.filter((record) => (
-			record.type === 'response_item' &&
-			record.payload?.type === 'message' &&
-			record.payload.role === 'user' &&
-			record.timestamp
-		))
-		.map((record) => record.timestamp as string);
+	const userTimestamps = userPromptTimes(records);
 	const ranges: Array<[string, string]> = [];
 	const latestUserTime = userTimestamps.at(-1);
 	if (latestUserTime) {
@@ -2132,17 +2137,17 @@ function extractCodexWrittenFilesFromRange(
 }
 
 async function findCodexSessionFile(threadId: string): Promise<string | undefined> {
-	const sessionsRoot = path.join(os.homedir(), '.codex', 'sessions');
-	const files = await listFiles(sessionsRoot);
+	const sessionsRoot = codexSessionsRoot();
+	const files = await listFilesIfExists(sessionsRoot);
 	const jsonlFiles = files.filter((file) => file.endsWith('.jsonl'));
-	const namedMatch = jsonlFiles.find((file) => path.basename(file).includes(threadId));
+	const namedMatch = jsonlFiles.find((file) => path.basename(file).endsWith(`-${threadId}.jsonl`));
 	if (namedMatch) {
 		return namedMatch;
 	}
 
 	for (const file of jsonlFiles) {
 		const content = await fs.readFile(file, 'utf8');
-		if (content.includes(threadId)) {
+		if (sessionMetadata(content.split(/\r?\n/).flatMap(parseSessionLine))?.id === threadId) {
 			return file;
 		}
 	}
@@ -2156,7 +2161,7 @@ async function readCodexThreadEntries(): Promise<CodexThreadListItem[]> {
 		return [];
 	}
 
-	const sessionsRoot = path.join(os.homedir(), '.codex', 'sessions');
+	const sessionsRoot = codexSessionsRoot();
 	const files = await listFilesIfExists(sessionsRoot);
 	const jsonlStats = await Promise.all(
 		files
@@ -2184,11 +2189,10 @@ async function readCodexThreadEntries(): Promise<CodexThreadListItem[]> {
 					.split(/\r?\n/)
 					.filter(Boolean)
 					.flatMap((line) => parseCodexSessionRecord(line));
+				const metadata = sessionMetadata(records);
+				if (!metadata || path.resolve(metadata.cwd) !== path.resolve(workspaceFolder.uri.fsPath)) { return undefined; }
 				const hunks = extractRecentCodexPatchHunksForReview(records, workspaceFolder.uri.fsPath);
 				const changedFiles = new Set(hunks.map((hunk) => hunk.filePath));
-				if (changedFiles.size === 0) {
-					return undefined;
-				}
 				return {
 					id: getCodexThreadId(records, file),
 					title: getCodexThreadTitle(records, file),
@@ -2230,6 +2234,8 @@ async function listFiles(root: string): Promise<string[]> {
 }
 
 function getCodexThreadId(records: CodexSessionRecord[], file: string): string {
+	const metadata = sessionMetadata(records);
+	if (metadata) { return metadata.id; }
 	for (const record of records) {
 		const candidate = getStringProperty(record, 'thread_id')
 			?? getStringProperty(record, 'threadId')
@@ -2243,6 +2249,9 @@ function getCodexThreadId(records: CodexSessionRecord[], file: string): string {
 }
 
 function getCodexThreadTitle(records: CodexSessionRecord[], file: string): string {
+	const prompts = records.filter(record => record.type === 'event_msg' && record.payload?.type === 'user_message');
+	const prompt = getStringProperty(prompts.at(-1)?.payload, 'message');
+	if (prompt) { return trimTitle(prompt); }
 	const titles: string[] = [];
 	for (const record of records) {
 		if (
@@ -2305,7 +2314,7 @@ function trimTitle(value: string): string {
 
 function parseCodexSessionRecord(line: string): CodexSessionRecord[] {
 	try {
-		return [JSON.parse(line) as CodexSessionRecord];
+		return parseSessionLine(line) as CodexSessionRecord[];
 	} catch {
 		return [];
 	}

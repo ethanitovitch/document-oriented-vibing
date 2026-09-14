@@ -2,7 +2,7 @@
   "name": "document-oriented-vibing",
   "displayName": "document-oriented-vibing",
   "description": "Get the same cursor features in VSCode with Codex",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "publisher": "ethanitovitch",
   "icon": "assets/icon.png",
   "license": "MIT",
@@ -55,6 +55,25 @@
       {
         "command": "document-oriented-vibing.copyForLlm",
         "title": "DOV: Copy Selection for LLM"
+      },
+      {
+        "command": "document-oriented-vibing.newAgent",
+        "title": "DOV: New Agent Tab",
+        "icon": "$(plus)"
+      },
+      {
+        "command": "document-oriented-vibing.refreshAgents",
+        "title": "DOV: Refresh Agents",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "document-oriented-vibing.openAgent",
+        "title": "Codex: Switch Agent"
+      },
+      {
+        "command": "document-oriented-vibing.newSidebarAgent",
+        "title": "Codex: New Sidebar Chat",
+        "icon": "$(plus)"
       }
     ],
     "keybindings": [
@@ -64,7 +83,45 @@
         "mac": "cmd+c",
         "when": "editorTextFocus"
       }
-    ]
+    ],
+    "views": {
+      "codexSecondaryViewContainer": [
+        {
+          "id": "document-oriented-vibing.codexAgents",
+          "name": "Agents",
+          "when": "!chatgpt.doesNotSupportSecondarySidebar",
+          "visibility": "visible"
+        }
+      ],
+      "codexViewContainer": [
+        {
+          "id": "document-oriented-vibing.codexAgentsLegacy",
+          "name": "Agents",
+          "when": "chatgpt.doesNotSupportSecondarySidebar",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "document-oriented-vibing.newSidebarAgent",
+          "when": "view == document-oriented-vibing.codexAgents || view == document-oriented-vibing.codexAgentsLegacy",
+          "group": "navigation"
+        },
+        {
+          "command": "document-oriented-vibing.refreshAgents",
+          "when": "view == document-oriented-vibing.codexAgents || view == document-oriented-vibing.codexAgentsLegacy",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "document-oriented-vibing.openAgent",
+          "when": "false"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",
@@ -101,5 +158,8 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "shiki": "^4.0.2"
-  }
+  },
+  "extensionDependencies": [
+    "openai.chatgpt"
+  ]
 }
