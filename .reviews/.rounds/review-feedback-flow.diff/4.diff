@@ -1,0 +1,5 @@
+diff --git a/src/webview/review/App.jsx b/src/webview/review/App.jsx
+--- a/src/webview/review/App.jsx
++++ b/src/webview/review/App.jsx
+@@ -320,0 +321 @@
++								{/* Completion requires every hunk to be reviewed and every open comment to be resolved. */}

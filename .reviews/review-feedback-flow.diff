@@ -1,0 +1,39 @@
+diff --git a/src/webview/review/App.jsx b/src/webview/review/App.jsx
+--- a/src/webview/review/App.jsx
++++ b/src/webview/review/App.jsx
+@@ -1,11 +0,0 @@
+-function reviewMetricStyle(openComment = false) {
+-	return {
+-		border: `1px solid ${openComment ? palette.warn : palette.border}`,
+-		borderRadius: 999,
+-		padding: '2px 7px',
+-		color: openComment ? palette.warn : palette.muted,
+-		fontWeight: openComment ? 600 : 400,
+-		whiteSpace: 'nowrap',
+-	};
+-}
+-
+@@ -231,0 +221,2 @@
++		// Current rounds use stable hunk IDs so feedback stays on the same card after a revision.
++		// Historical snapshots still use their original diff IDs, which we retain for lookup.
+@@ -232,0 +224 @@
++		// Surface only comments whose hunk is absent; attached comments render inside that hunk.
+@@ -233,0 +226,2 @@
++		const totalHunks = diffTotals.pending + diffTotals.approved + diffTotals.rejected;
++		const reviewedHunks = diffTotals.approved + diffTotals.rejected;
+@@ -316,6 +310,5 @@
+-								<div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12, color: palette.muted }}>
+-									<span style={reviewMetricStyle()}>{diffFiles.length} files</span>
+-									<span style={reviewMetricStyle()}>{diffTotals.pending} pending</span>
+-									<span style={reviewMetricStyle()}>{diffTotals.approved} approved</span>
+-									<span style={reviewMetricStyle()}>{diffTotals.rejected} rejected</span>
+-									{openComments.length > 0 && <span style={reviewMetricStyle(true)}>{openComments.length} open comments</span>}
++								<div style={{ display: 'grid', gap: 5, minWidth: 150, fontSize: 12, color: palette.muted }}>
++									<span>{reviewedHunks} of {totalHunks} hunks reviewed · {diffFiles.length} files</span>
++									<div role="progressbar" aria-label="Review progress" aria-valuenow={reviewedHunks} aria-valuemin={0} aria-valuemax={totalHunks || 1} style={{ height: 4, borderRadius: 4, background: palette.border, overflow: 'hidden' }}>
++										<div style={{ height: '100%', width: `${totalHunks ? reviewedHunks / totalHunks * 100 : 0}%`, background: palette.button }} />
++									</div>
+@@ -322,0 +316 @@
++								{openComments.length > 0 && <span style={{ color: palette.warn, fontSize: 12, fontWeight: 600 }}>{openComments.length} open comments</span>}
+@@ -509 +502,0 @@
+-													{/* Review comments follow the stable hunk ID when a later round revises its code. */}

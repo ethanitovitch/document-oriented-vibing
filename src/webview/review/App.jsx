@@ -12,6 +12,9 @@ const palette = {
 	text: 'var(--vscode-editor-foreground, #1b2331)',
 	muted: 'var(--vscode-descriptionForeground, #5a667c)',
 	border: 'var(--vscode-editorWidget-border, #d6dcea)',
+	dropdownBg: 'var(--vscode-dropdown-background, var(--vscode-input-background, #252526))',
+	dropdownText: 'var(--vscode-dropdown-foreground, var(--vscode-input-foreground, #cccccc))',
+	dropdownBorder: 'var(--vscode-dropdown-border, var(--vscode-input-border, #454545))',
 	button: 'var(--vscode-button-background, #2f6fed)',
 	buttonText: 'var(--vscode-button-foreground, #ffffff)',
 	success: 'var(--vscode-testing-iconPassed, #15803d)',
@@ -39,6 +42,11 @@ export function ReviewApp() {
 	const [rawContent, setRawContent] = useState('');
 	const [diffFiles, setDiffFiles] = useState([]);
 	const [statePath, setStatePath] = useState('');
+	const [rounds, setRounds] = useState([]);
+	const [comments, setComments] = useState([]);
+	const [selectedRoundId, setSelectedRoundId] = useState(0);
+	const [latestRoundId, setLatestRoundId] = useState(0);
+	const [completedAt, setCompletedAt] = useState('');
 	const [selectedPath, setSelectedPath] = useState('');
 	const [selectedChangeId, setSelectedChangeId] = useState('');
 	const [expandedHunks, setExpandedHunks] = useState({});
@@ -85,6 +93,11 @@ export function ReviewApp() {
 			setRawContent(nextRaw);
 			setDiffFiles(Array.isArray(message.diffFiles) ? message.diffFiles : []);
 			setStatePath(typeof message.statePath === 'string' ? message.statePath : '');
+			setRounds(Array.isArray(message.rounds) ? message.rounds : []);
+			setComments(Array.isArray(message.comments) ? message.comments : []);
+			setSelectedRoundId(Number(message.selectedRoundId) || 0);
+			setLatestRoundId(Number(message.latestRoundId) || 0);
+			setCompletedAt(typeof message.completedAt === 'string' ? message.completedAt : '');
 			setStatusText('Ready.');
 		};
 
@@ -203,18 +216,32 @@ export function ReviewApp() {
 
 	if (isDiffReview) {
 		const diffTotals = getDiffTotals(diffFiles);
-		const allReviewed = diffFiles.length > 0 && diffTotals.pending === 0;
+		const isHistoricalRound = selectedRoundId > 0 && selectedRoundId !== latestRoundId;
+		const openComments = comments.filter(comment => comment.status === 'open');
+		// Current rounds use stable hunk IDs so feedback stays on the same card after a revision.
+		// Historical snapshots still use their original diff IDs, which we retain for lookup.
+		const commentsForChange = (file, change) => comments.filter(comment => comment.filePath === file.path && (comment.changeId === change.id || (isHistoricalRound && comment.roundId === selectedRoundId && comment.originalChangeId === change.id)));
+		// Surface only comments whose hunk is absent; attached comments render inside that hunk.
+		const commentsOutsideCurrentHunks = comments.filter(comment => comment.status !== 'resolved' && !diffFiles.some(file => file.path === comment.filePath && file.changes.some(change => change.id === comment.changeId)));
+		const totalHunks = diffTotals.pending + diffTotals.approved + diffTotals.rejected;
+		const reviewedHunks = diffTotals.approved + diffTotals.rejected;
+		const hasPendingHunks = diffTotals.pending > 0;
+		const hasOpenComments = openComments.length > 0;
+		const allApproved = totalHunks > 0 && diffTotals.approved === totalHunks;
+		const completionBlocked = hasPendingHunks || (hasOpenComments && !allApproved);
+		const allReviewed = diffFiles.length > 0 && !hasPendingHunks && !hasOpenComments;
+		const feedbackPending = diffFiles.length > 0 && !hasPendingHunks && hasOpenComments && !allApproved;
 		const openDiffFile = (file) => {
 			const firstChange = getChanges(file)[0];
 			vscode.postMessage({
-				action: firstChange ? 'selectChange' : 'openFile',
+				action: 'openDiffFile',
 				filePath: file.path,
 				changeId: firstChange?.id,
 			});
 			setStatusText(`Opened ${file.path}.`);
 		};
 		const openDiffHunk = (file, change) => {
-			vscode.postMessage({ action: 'selectChange', filePath: file.path, changeId: change.id });
+			vscode.postMessage({ action: 'openDiffFile', filePath: file.path, changeId: change.id });
 			setStatusText(`Opened ${file.path} lines ${change.startLine}-${change.endLine}.`);
 		};
 		const approveAllDiffChanges = () => {
@@ -276,15 +303,19 @@ export function ReviewApp() {
 			}}>
 				<main style={{ display: 'grid', gap: 12, maxWidth: 980, margin: '0 auto' }}>
 					<section style={panelStyle()}>
-						<div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start' }}>
+						<div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start', flexWrap: 'wrap' }}>
 							<div>
 								<div style={{ fontSize: 12, color: palette.muted }}>{reviewName || 'Review'}</div>
 								<h1 style={{ margin: '4px 0 0', fontSize: 20 }}>Changed Files</h1>
 							</div>
-							<div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-								<div style={{ fontSize: 12, color: palette.muted, whiteSpace: 'nowrap' }}>
-									{diffFiles.length} files · {diffTotals.pending} pending · {diffTotals.approved} approved · {diffTotals.rejected} rejected
+							<div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+								<div style={{ display: 'grid', gap: 5, minWidth: 150, fontSize: 12, color: palette.muted }}>
+									<span>{reviewedHunks} of {totalHunks} hunks reviewed · {diffFiles.length} files</span>
+									<div role="progressbar" aria-label="Review progress" aria-valuenow={reviewedHunks} aria-valuemin={0} aria-valuemax={totalHunks || 1} style={{ height: 4, borderRadius: 4, background: palette.border, overflow: 'hidden' }}>
+										<div style={{ height: '100%', width: `${totalHunks ? reviewedHunks / totalHunks * 100 : 0}%`, background: palette.button }} />
+									</div>
 								</div>
+								{openComments.length > 0 && <span style={{ color: palette.warn, fontSize: 12, fontWeight: 600 }}>{openComments.length} open comments</span>}
 								{(diffTotals.pending > 0 || diffTotals.rejected > 0) && (
 									<button style={approveButtonStyle()} onClick={approveAllDiffChanges}>
 										Approve All
@@ -300,13 +331,14 @@ export function ReviewApp() {
 										Undo All
 									</button>
 								)}
-								<button
-									style={dangerButtonStyle(diffTotals.pending > 0)}
-									disabled={diffTotals.pending > 0}
+								{/* Open comments do not block completion after every hunk is approved. */}
+								{!completedAt && <button
+									style={dangerButtonStyle(completionBlocked)}
+									disabled={completionBlocked}
 									onClick={completeReview}
 								>
 									Complete
-								</button>
+								</button>}
 							</div>
 						</div>
 						{statePath && (
@@ -314,14 +346,39 @@ export function ReviewApp() {
 								State: {statePath}
 							</div>
 						)}
+						{rounds.length > 0 && (
+							<div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+								<label htmlFor="review-round">Round</label>
+								<select id="review-round" value={selectedRoundId} style={dropdownStyle()} onChange={(event) => vscode.postMessage({ action: 'selectRound', roundId: Number(event.target.value) })}>
+									{rounds.map(round => <option key={round.id} value={round.id}>Round {round.id} · {new Date(round.createdAt).toLocaleString()} · {round.threadId.slice(0, 8)}</option>)}
+								</select>
+									{isHistoricalRound && <span style={{ color: palette.muted }}>Earlier round · read only</span>}
+									{!isHistoricalRound && <button style={secondaryButtonStyle()} onClick={() => vscode.postMessage({ action: 'openFeedbackFile' })}>Open feedback file</button>}
+									{!isHistoricalRound && <button style={secondaryButtonStyle()} disabled={openComments.length === 0} title="Copy a task to paste into your Codex chat" onClick={() => { vscode.postMessage({ action: 'requestChanges' }); setStatusText('Task copied. Paste it into your Codex chat to start the next round.'); }}>Copy agent task ({openComments.length})</button>}
+							</div>
+						)}
+						{!isHistoricalRound && commentsOutsideCurrentHunks.length > 0 && (
+							<div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+								<strong>Comments without a current hunk</strong>
+								{commentsOutsideCurrentHunks.map(comment => (
+									<div key={comment.id} style={{ borderLeft: `3px solid ${palette.warn}`, paddingLeft: 8 }}>
+										<span>Round {comment.roundId} · {comment.filePath}: {comment.text} · {comment.status}</span>{' '}
+										<button style={secondaryButtonStyle()} onClick={() => vscode.postMessage({ action: 'setCommentStatus', commentId: comment.id, status: 'resolved' })}>Resolve</button>
+									</div>
+								))}
+							</div>
+						)}
 						{allReviewed && (
 							<div style={completeBannerStyle()}>
 								All files reviewed
 							</div>
 						)}
+						{allApproved && hasOpenComments && <div style={completeBannerStyle()}>All hunks approved · open comments can remain when you complete</div>}
+						{feedbackPending && <div style={feedbackBannerStyle()}>All hunks reviewed. {openComments.length} open comment{openComments.length === 1 ? '' : 's'} remain. Use Request changes to send feedback to your agent, or resolve comments that no longer apply.</div>}
+						{completedAt && <div style={completeBannerStyle()}>Completed {new Date(completedAt).toLocaleString()}</div>}
 					</section>
 
-					<section style={{ display: 'grid', gap: 10 }}>
+					<section style={{ display: 'grid', gap: 10, pointerEvents: isHistoricalRound ? 'none' : undefined }}>
 						{diffFiles.map((file) => {
 							const changes = getChanges(file);
 							const fileTotals = getTotals([file]);
@@ -349,13 +406,23 @@ export function ReviewApp() {
 											{(fileTotals.approved > 0 || fileTotals.rejected > 0) && (
 												<button style={secondaryButtonStyle()} onClick={() => undoDiffFile(file)}>Undo File</button>
 											)}
-											<button style={buttonStyle()} onClick={() => openDiffFile(file)}>Open File</button>
+											<button
+												style={buttonStyle()}
+												title="Show removed and added lines in the diff editor"
+												onClick={() => openDiffFile(file)}
+											>
+												Open Diff
+											</button>
 										</div>
 									</div>
 									<div style={{ display: 'grid', gap: 6, marginTop: 12 }}>
-										{visibleChanges.map((change, index) => {
-											const status = getStatus(change);
-											return (
+									{visibleChanges.map((change, index) => {
+										const status = getStatus(change);
+										const lastTouchedRound = change.aliases?.at(-1)?.roundId || change.sourceRoundId;
+										const roundLabel = lastTouchedRound === latestRoundId
+											? change.sourceRoundId === latestRoundId ? 'New this round' : 'Updated this round'
+											: lastTouchedRound ? `Carried from round ${lastTouchedRound}` : '';
+										return (
 											<div
 												key={change.id}
 												style={previewRowStyle()}
@@ -370,9 +437,10 @@ export function ReviewApp() {
 											>
 												<span>Lines {change.startLine}-{change.endLine}</span>
 												<span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-													{change.title || 'Changed hunk'}
+													{change.title || 'Changed hunk'}{roundLabel && <span style={{ color: palette.muted, marginLeft: 8 }}>· {roundLabel}</span>}
 												</span>
 												<span style={statusStyle(status)}>{status}</span>
+												{commentsForChange(file, change).some(comment => comment.status !== 'resolved') && <span style={statusStyle('pending')}>Comment</span>}
 												<div style={{ display: 'flex', gap: 6 }}>
 													<button
 														style={secondaryButtonStyle()}
@@ -403,15 +471,21 @@ export function ReviewApp() {
 															>
 																Approve
 															</button>
-															<button
-																style={dangerButtonStyle()}
+													<button
+														style={dangerButtonStyle()}
 																onClick={(event) => {
 																	event.stopPropagation();
 																	rejectChange(change, index, file.path);
 																}}
 															>
-																Reject
-															</button>
+														Reject
+													</button>
+													<button
+														style={secondaryButtonStyle()}
+														onClick={(event) => { event.stopPropagation(); vscode.postMessage({ action: 'addCommentPrompt', filePath: file.path, changeId: change.id }); }}
+													>
+														Comment
+													</button>
 														</>
 													) : (
 														<button
@@ -428,6 +502,14 @@ export function ReviewApp() {
 												{expandedHunks[change.id]
 													? renderFullDiff(change, () => toggleDiffHunk(change.id))
 													: renderMiniDiff(change, () => toggleDiffHunk(change.id))}
+												<div style={{ gridColumn: '1 / -1', display: 'grid', gap: 6 }} onClick={(event) => event.stopPropagation()}>
+													{commentsForChange(file, change).map(comment => (
+														<div key={comment.id} style={{ borderLeft: `3px solid ${comment.status === 'resolved' ? palette.success : palette.warn}`, paddingLeft: 8 }}>
+															<span>{comment.text}</span> <span style={{ color: palette.muted }}>· {comment.status}</span>
+															{!isHistoricalRound && <button style={secondaryButtonStyle()} onClick={() => vscode.postMessage({ action: 'setCommentStatus', commentId: comment.id, status: comment.status === 'resolved' ? 'open' : 'resolved' })}>{comment.status === 'resolved' ? 'Reopen' : 'Resolve'}</button>}
+														</div>
+													))}
+												</div>
 											</div>
 											);
 										})}
@@ -684,7 +766,10 @@ function formatHunkForLlm(file, change, index) {
 		lines.push(codeFence('ts', newLines.join('\n')));
 		lines.push('');
 		lines.push('Diff:');
-		lines.push(codeFence('diff', formatInlineDiff(oldLines, newLines)));
+		lines.push(codeFence('diff', formatInlineDiff(
+			Array.isArray(change?.removedLines) ? change.removedLines : oldLines,
+			Array.isArray(change?.addedLines) ? change.addedLines : newLines,
+		)));
 	} else if (replacement) {
 		lines.push('Replacement:');
 		lines.push(codeFence('ts', replacement));
@@ -704,14 +789,16 @@ function codeFence(language, content) {
 }
 
 function renderMiniDiff(change, onExpand) {
-	const oldLines = Array.isArray(change?.oldLines) ? change.oldLines : [];
-	const newLines = Array.isArray(change?.newLines) ? change.newLines : [];
+	const oldLines = Array.isArray(change?.removedLines) ? change.removedLines : change?.oldLines || [];
+	const newLines = Array.isArray(change?.addedLines) ? change.addedLines : change?.newLines || [];
 	const rows = [
 		...oldLines.map((line) => ({ kind: 'old', line })),
 		...newLines.map((line) => ({ kind: 'new', line })),
 	];
 	const preferredRows = rows.length > 0 ? rows : [];
-	const visibleRows = preferredRows.slice(0, 2);
+	const visibleRows = oldLines.length > 0 && newLines.length > 0
+		? [rows[0], rows[oldLines.length]]
+		: preferredRows.slice(0, 2);
 	if (visibleRows.length === 0) {
 		return null;
 	}
@@ -741,8 +828,8 @@ function renderMiniDiff(change, onExpand) {
 }
 
 function renderFullDiff(change, onCollapse) {
-	const oldLines = Array.isArray(change?.oldLines) ? change.oldLines : [];
-	const newLines = Array.isArray(change?.newLines) ? change.newLines : [];
+	const oldLines = Array.isArray(change?.removedLines) ? change.removedLines : change?.oldLines || [];
+	const newLines = Array.isArray(change?.addedLines) ? change.addedLines : change?.newLines || [];
 	const rows = [
 		...oldLines.map((line) => ({ kind: 'old', line })),
 		...newLines.map((line) => ({ kind: 'new', line })),
@@ -862,6 +949,19 @@ function secondaryButtonStyle() {
 		background: palette.surface,
 		color: palette.text,
 		border: `1px solid ${palette.border}`,
+	};
+}
+
+function dropdownStyle() {
+	return {
+		background: palette.dropdownBg,
+		color: palette.dropdownText,
+		border: `1px solid ${palette.dropdownBorder}`,
+		borderRadius: 4,
+		padding: '6px 8px',
+		font: 'inherit',
+		maxWidth: '100%',
+		colorScheme: document.body.classList.contains('vscode-light') ? 'light' : 'dark',
 	};
 }
 
@@ -1089,6 +1189,15 @@ function completeBannerStyle() {
 		color: palette.success,
 		fontSize: 13,
 		fontWeight: 700,
+	};
+}
+
+function feedbackBannerStyle() {
+	return {
+		...completeBannerStyle(),
+		border: `1px solid ${palette.warn}`,
+		background: 'var(--vscode-inputValidation-warningBackground, var(--vscode-editor-background))',
+		color: 'var(--vscode-inputValidation-warningForeground, var(--vscode-editor-foreground))',
 	};
 }
 

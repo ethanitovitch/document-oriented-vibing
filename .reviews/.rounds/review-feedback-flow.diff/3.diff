@@ -1,0 +1,18 @@
+diff --git a/src/webview/review/App.jsx b/src/webview/review/App.jsx
+--- a/src/webview/review/App.jsx
++++ b/src/webview/review/App.jsx
+@@ -221,2 +221,4 @@
+-		const allReviewed = diffFiles.length > 0 && diffTotals.pending === 0 && openComments.length === 0;
+-		const feedbackPending = diffFiles.length > 0 && diffTotals.pending === 0 && openComments.length > 0;
++		const hasPendingHunks = diffTotals.pending > 0;
++		const hasOpenComments = openComments.length > 0;
++		const allReviewed = diffFiles.length > 0 && !hasPendingHunks && !hasOpenComments;
++		const feedbackPending = diffFiles.length > 0 && !hasPendingHunks && hasOpenComments;
+@@ -320,2 +322,2 @@
+-									style={dangerButtonStyle(diffTotals.pending > 0 || openComments.length > 0)}
+-									disabled={diffTotals.pending > 0 || openComments.length > 0}
++									style={dangerButtonStyle(hasPendingHunks || hasOpenComments)}
++									disabled={hasPendingHunks || hasOpenComments}
+@@ -360 +362 @@
+-						{feedbackPending && <div style={feedbackBannerStyle()}>All hunks reviewed · {openComments.length} comment{openComments.length === 1 ? '' : 's'} still need changes</div>}
++						{feedbackPending && <div style={feedbackBannerStyle()}>All hunks reviewed. {openComments.length} open comment{openComments.length === 1 ? '' : 's'} remain. Use Request changes to send feedback to your agent, or resolve comments that no longer apply.</div>}

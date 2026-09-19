@@ -1,0 +1,799 @@
+{
+  "version": 1,
+  "reviewName": "review-feedback-flow.diff",
+  "updatedAt": "2026-09-19T20:34:15.157Z",
+  "changes": {
+    "r1:src/webview/review/App.jsx:337:1": "approved",
+    "r1:src/webview/review/App.jsx:417:2": "approved",
+    "r1:src/webview/review/App.jsx:481:3": "approved",
+    "r2:src/webview/review/App.jsx:221:1": "approved",
+    "r2:src/webview/review/App.jsx:302:2": "approved",
+    "r2:src/webview/review/App.jsx:320:3": "approved",
+    "r2:src/webview/review/App.jsx:360:4": "approved",
+    "r2:src/webview/review/App.jsx:1174:5": "approved",
+    "r2:src/extension.ts:1035:1": "approved",
+    "r5:src/webview/review/App.jsx:409:1": "approved",
+    "r5:src/webview/review/App.jsx:428:2": "approved",
+    "r6:src/webview/review/App.jsx:299:1": "approved",
+    "r7:src/webview/review/App.jsx:350:2": "approved",
+    "r7:src/webview/review/App.jsx:498:3": "approved",
+    "r7:src/webview/review/App.jsx:961:4": "approved",
+    "r8:src/webview/review/App.jsx:0:1": "approved",
+    "r8:src/webview/review/App.jsx:224:3": "approved",
+    "r8:src/webview/review/App.jsx:226:4": "approved",
+    "r8:src/webview/review/App.jsx:316:6": "approved"
+  },
+  "rounds": [
+    {
+      "id": 1,
+      "createdAt": "2026-09-19T20:05:03.980Z",
+      "threadId": "01a0bb38-d084-7eb0-a491-c66eca569df2",
+      "changes": {
+        "src/webview/review/App.jsx:337:1": "approved",
+        "src/webview/review/App.jsx:417:2": "approved",
+        "src/webview/review/App.jsx:481:3": "approved"
+      }
+    },
+    {
+      "id": 2,
+      "createdAt": "2026-09-19T20:13:48.332Z",
+      "threadId": "01a0bb38-d084-7eb0-a491-c66eca569df2",
+      "changes": {}
+    },
+    {
+      "id": 3,
+      "createdAt": "2026-09-19T20:16:10.302Z",
+      "threadId": "01a0bb4e-fcb0-7163-8830-6345a02212ac",
+      "changes": {
+        "src/webview/review/App.jsx:221:1": "approved"
+      }
+    },
+    {
+      "id": 4,
+      "createdAt": "2026-09-19T20:17:29.546Z",
+      "threadId": "01a0bb4e-fcb0-7163-8830-6345a02212ac",
+      "changes": {
+        "r1:src/webview/review/App.jsx:337:1": "approved",
+        "r1:src/webview/review/App.jsx:417:2": "approved",
+        "r1:src/webview/review/App.jsx:481:3": "approved",
+        "r2:src/webview/review/App.jsx:221:1": "approved",
+        "r2:src/webview/review/App.jsx:302:2": "pending",
+        "r2:src/webview/review/App.jsx:320:3": "approved",
+        "r2:src/webview/review/App.jsx:360:4": "pending",
+        "r2:src/webview/review/App.jsx:1174:5": "pending",
+        "r2:src/extension.ts:1035:1": "pending"
+      }
+    },
+    {
+      "id": 5,
+      "createdAt": "2026-09-19T20:25:39.302Z",
+      "threadId": "01a0bb38-d084-7eb0-a491-c66eca569df2",
+      "changes": {
+        "r1:src/webview/review/App.jsx:337:1": "approved",
+        "r1:src/webview/review/App.jsx:417:2": "approved",
+        "r1:src/webview/review/App.jsx:481:3": "approved",
+        "r2:src/webview/review/App.jsx:221:1": "approved",
+        "r2:src/webview/review/App.jsx:302:2": "pending",
+        "r2:src/webview/review/App.jsx:320:3": "approved",
+        "r2:src/webview/review/App.jsx:360:4": "pending",
+        "r2:src/webview/review/App.jsx:1174:5": "pending",
+        "r2:src/extension.ts:1035:1": "approved",
+        "r5:src/webview/review/App.jsx:409:1": "pending",
+        "r5:src/webview/review/App.jsx:428:2": "pending"
+      }
+    },
+    {
+      "id": 6,
+      "createdAt": "2026-09-19T20:28:57.296Z",
+      "threadId": "01a0bb38-d084-7eb0-a491-c66eca569df2",
+      "changes": {
+        "r1:src/webview/review/App.jsx:337:1": "pending",
+        "r1:src/webview/review/App.jsx:417:2": "approved",
+        "r1:src/webview/review/App.jsx:481:3": "pending",
+        "r2:src/webview/review/App.jsx:221:1": "pending",
+        "r2:src/webview/review/App.jsx:302:2": "pending",
+        "r2:src/webview/review/App.jsx:320:3": "pending",
+        "r2:src/webview/review/App.jsx:360:4": "pending",
+        "r2:src/webview/review/App.jsx:1174:5": "pending",
+        "r2:src/extension.ts:1035:1": "approved",
+        "r5:src/webview/review/App.jsx:409:1": "pending",
+        "r5:src/webview/review/App.jsx:428:2": "pending",
+        "r6:src/webview/review/App.jsx:299:1": "pending"
+      }
+    },
+    {
+      "id": 7,
+      "createdAt": "2026-09-19T20:31:08.122Z",
+      "threadId": "01a0bb38-d084-7eb0-a491-c66eca569df2",
+      "changes": {
+        "r1:src/webview/review/App.jsx:337:1": "approved",
+        "r1:src/webview/review/App.jsx:417:2": "approved",
+        "r1:src/webview/review/App.jsx:481:3": "pending",
+        "r2:src/webview/review/App.jsx:221:1": "approved",
+        "r2:src/webview/review/App.jsx:302:2": "pending",
+        "r2:src/webview/review/App.jsx:320:3": "pending",
+        "r2:src/webview/review/App.jsx:360:4": "pending",
+        "r2:src/webview/review/App.jsx:1174:5": "pending",
+        "r2:src/extension.ts:1035:1": "approved",
+        "r5:src/webview/review/App.jsx:409:1": "pending",
+        "r5:src/webview/review/App.jsx:428:2": "pending",
+        "r6:src/webview/review/App.jsx:299:1": "pending",
+        "r7:src/webview/review/App.jsx:350:2": "pending",
+        "r7:src/webview/review/App.jsx:498:3": "pending",
+        "r7:src/webview/review/App.jsx:961:4": "pending"
+      }
+    },
+    {
+      "id": 8,
+      "createdAt": "2026-09-19T20:33:34.791Z",
+      "threadId": "01a0bb38-d084-7eb0-a491-c66eca569df2",
+      "changes": {}
+    }
+  ],
+  "comments": [
+    {
+      "id": "1789848354288-s1b737p8f8n",
+      "roundId": 1,
+      "filePath": "src/webview/review/App.jsx",
+      "changeId": "r1:src/webview/review/App.jsx:337:1",
+      "text": "hmm try something else",
+      "createdAt": "2026-09-19T20:05:54.288Z",
+      "status": "resolved",
+      "originalChangeId": "src/webview/review/App.jsx:337:1"
+    },
+    {
+      "id": "1789848898192-ukank8a3r",
+      "roundId": 2,
+      "filePath": "src/webview/review/App.jsx",
+      "changeId": "r2:src/webview/review/App.jsx:221:1",
+      "text": "im not sure anythign",
+      "createdAt": "2026-09-19T20:14:58.192Z",
+      "status": "resolved",
+      "originalChangeId": "src/webview/review/App.jsx:221:1"
+    },
+    {
+      "id": "1789849014583-yz9hmdmx3w",
+      "roundId": 3,
+      "filePath": "src/webview/review/App.jsx",
+      "changeId": "r2:src/webview/review/App.jsx:320:3",
+      "text": "im not sure just add a comment here",
+      "createdAt": "2026-09-19T20:16:54.583Z",
+      "status": "resolved",
+      "originalChangeId": "src/webview/review/App.jsx:322:2"
+    },
+    {
+      "id": "1789849631829-up2o0pmc2f",
+      "roundId": 5,
+      "filePath": "src/webview/review/App.jsx",
+      "changeId": "r2:src/webview/review/App.jsx:302:2",
+      "text": "do somethign else idc",
+      "createdAt": "2026-09-19T20:27:11.829Z",
+      "status": "open"
+    },
+    {
+      "id": "1789849805748-hoc7nixtqd",
+      "roundId": 6,
+      "filePath": "src/webview/review/App.jsx",
+      "changeId": "r1:src/webview/review/App.jsx:481:3",
+      "text": "add a comment here",
+      "createdAt": "2026-09-19T20:30:05.748Z",
+      "status": "resolved"
+    },
+    {
+      "id": "1789849954192-qumj9bxcmd",
+      "roundId": 7,
+      "filePath": "src/webview/review/App.jsx",
+      "changeId": "r1:src/webview/review/App.jsx:481:3",
+      "text": "add some comments explaining this",
+      "createdAt": "2026-09-19T20:32:34.192Z",
+      "status": "resolved"
+    }
+  ],
+  "queue": [
+    {
+      "id": "r1:src/webview/review/App.jsx:337:1",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 1",
+      "startLine": 337,
+      "endLine": 337,
+      "oldLines": [
+        "\t\t\t\t\t\t\t\t{!isHistoricalRound && <button style={secondaryButtonStyle()} onClick={() => vscode.postMessage({ action: 'requestChanges' })}>Request changes ({openComments.length})</button>}"
+      ],
+      "newLines": [
+        "\t\t\t\t\t\t\t\t{!isHistoricalRound && <button style={secondaryButtonStyle()} disabled={openComments.length === 0} title=\"Copy open comments to paste into an agent chat\" onClick={() => { vscode.postMessage({ action: 'requestChanges' }); setStatusText(`Copied ${openComments.length} open comments for your agent.`); }}>Request changes ({openComments.length})</button>}"
+      ],
+      "removedLines": [
+        "\t\t\t\t\t\t\t\t{!isHistoricalRound && <button style={secondaryButtonStyle()} onClick={() => vscode.postMessage({ action: 'requestChanges' })}>Request changes ({openComments.length})</button>}"
+      ],
+      "addedLines": [
+        "\t\t\t\t\t\t\t\t{!isHistoricalRound && <button style={secondaryButtonStyle()} disabled={openComments.length === 0} title=\"Copy open comments to paste into an agent chat\" onClick={() => { vscode.postMessage({ action: 'requestChanges' }); setStatusText(`Copied ${openComments.length} open comments for your agent.`); }}>Request changes ({openComments.length})</button>}"
+      ],
+      "status": "approved",
+      "sourceRoundId": 1,
+      "aliases": [
+        {
+          "roundId": 1,
+          "changeId": "src/webview/review/App.jsx:337:1"
+        }
+      ]
+    },
+    {
+      "id": "r1:src/webview/review/App.jsx:417:2",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 2",
+      "startLine": 417,
+      "endLine": 417,
+      "oldLines": [],
+      "newLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t{comments.some(comment => comment.roundId === selectedRoundId && comment.filePath === file.path && comment.changeId === change.id && comment.status !== 'resolved') && <span style={statusStyle('pending')}>Comment</span>}"
+      ],
+      "removedLines": [],
+      "addedLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t{comments.some(comment => comment.roundId === selectedRoundId && comment.filePath === file.path && comment.changeId === change.id && comment.status !== 'resolved') && <span style={statusStyle('pending')}>Comment</span>}"
+      ],
+      "status": "approved",
+      "sourceRoundId": 1,
+      "aliases": [
+        {
+          "roundId": 1,
+          "changeId": "src/webview/review/App.jsx:417:2"
+        }
+      ]
+    },
+    {
+      "id": "r1:src/webview/review/App.jsx:481:3",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 3",
+      "startLine": 481,
+      "endLine": 482,
+      "oldLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t\t<input aria-label={`Comment on ${file.path} lines ${change.startLine}-${change.endLine}`} placeholder=\"Comment on this change\" value={commentDrafts[change.id] || ''} onChange={(event) => setCommentDrafts({ ...commentDrafts, [change.id]: event.target.value })} style={{ flex: 1, minWidth: 0 }} />",
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t\t<button style={secondaryButtonStyle()} disabled={!commentDrafts[change.id]?.trim()} onClick={() => { vscode.postMessage({ action: 'addComment', filePath: file.path, changeId: change.id, text: commentDrafts[change.id] }); setCommentDrafts({ ...commentDrafts, [change.id]: '' }); }}>Comment</button>"
+      ],
+      "newLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t\t<input aria-label={`Comment on ${file.path} lines ${change.startLine}-${change.endLine}`} placeholder=\"Comment on this change\" value={commentDrafts[change.id] || ''} onChange={(event) => setCommentDrafts({ ...commentDrafts, [change.id]: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter' && commentDrafts[change.id]?.trim()) { vscode.postMessage({ action: 'addComment', filePath: file.path, changeId: change.id, text: commentDrafts[change.id] }); setCommentDrafts({ ...commentDrafts, [change.id]: '' }); setStatusText(`Added comment on ${file.path}.`); } }} style={{ flex: 1, minWidth: 0 }} />",
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t\t<button style={secondaryButtonStyle()} disabled={!commentDrafts[change.id]?.trim()} onClick={() => { vscode.postMessage({ action: 'addComment', filePath: file.path, changeId: change.id, text: commentDrafts[change.id] }); setCommentDrafts({ ...commentDrafts, [change.id]: '' }); setStatusText(`Added comment on ${file.path}.`); }}>Comment</button>"
+      ],
+      "removedLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t\t<input aria-label={`Comment on ${file.path} lines ${change.startLine}-${change.endLine}`} placeholder=\"Comment on this change\" value={commentDrafts[change.id] || ''} onChange={(event) => setCommentDrafts({ ...commentDrafts, [change.id]: event.target.value })} style={{ flex: 1, minWidth: 0 }} />",
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t\t<button style={secondaryButtonStyle()} disabled={!commentDrafts[change.id]?.trim()} onClick={() => { vscode.postMessage({ action: 'addComment', filePath: file.path, changeId: change.id, text: commentDrafts[change.id] }); setCommentDrafts({ ...commentDrafts, [change.id]: '' }); }}>Comment</button>"
+      ],
+      "addedLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t\t<input aria-label={`Comment on ${file.path} lines ${change.startLine}-${change.endLine}`} placeholder=\"Comment on this change\" value={commentDrafts[change.id] || ''} onChange={(event) => setCommentDrafts({ ...commentDrafts, [change.id]: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter' && commentDrafts[change.id]?.trim()) { vscode.postMessage({ action: 'addComment', filePath: file.path, changeId: change.id, text: commentDrafts[change.id] }); setCommentDrafts({ ...commentDrafts, [change.id]: '' }); setStatusText(`Added comment on ${file.path}.`); } }} style={{ flex: 1, minWidth: 0 }} />",
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t\t<button style={secondaryButtonStyle()} disabled={!commentDrafts[change.id]?.trim()} onClick={() => { vscode.postMessage({ action: 'addComment', filePath: file.path, changeId: change.id, text: commentDrafts[change.id] }); setCommentDrafts({ ...commentDrafts, [change.id]: '' }); setStatusText(`Added comment on ${file.path}.`); }}>Comment</button>"
+      ],
+      "status": "pending",
+      "sourceRoundId": 1,
+      "aliases": [
+        {
+          "roundId": 1,
+          "changeId": "src/webview/review/App.jsx:481:3"
+        }
+      ]
+    },
+    {
+      "id": "r2:src/webview/review/App.jsx:221:1",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 2",
+      "startLine": 221,
+      "endLine": 222,
+      "oldLines": [],
+      "newLines": [
+        "\t\t// Current rounds use stable hunk IDs so feedback stays on the same card after a revision.",
+        "\t\t// Historical snapshots still use their original diff IDs, which we retain for lookup."
+      ],
+      "removedLines": [],
+      "addedLines": [
+        "\t\t// Current rounds use stable hunk IDs so feedback stays on the same card after a revision.",
+        "\t\t// Historical snapshots still use their original diff IDs, which we retain for lookup."
+      ],
+      "status": "pending",
+      "sourceRoundId": 2,
+      "aliases": [
+        {
+          "roundId": 2,
+          "changeId": "src/webview/review/App.jsx:221:1"
+        },
+        {
+          "roundId": 3,
+          "changeId": "src/webview/review/App.jsx:221:1"
+        },
+        {
+          "roundId": 8,
+          "changeId": "src/webview/review/App.jsx:221:2"
+        }
+      ]
+    },
+    {
+      "id": "r2:src/webview/review/App.jsx:302:2",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 5",
+      "startLine": 310,
+      "endLine": 314,
+      "oldLines": [
+        "\t\t\t\t\t\t\t\t<div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12, color: palette.muted }}>",
+        "\t\t\t\t\t\t\t\t\t<span style={reviewMetricStyle()}>{diffFiles.length} files</span>",
+        "\t\t\t\t\t\t\t\t\t<span style={reviewMetricStyle()}>{diffTotals.pending} pending</span>",
+        "\t\t\t\t\t\t\t\t\t<span style={reviewMetricStyle()}>{diffTotals.approved} approved</span>",
+        "\t\t\t\t\t\t\t\t\t<span style={reviewMetricStyle()}>{diffTotals.rejected} rejected</span>",
+        "\t\t\t\t\t\t\t\t\t{openComments.length > 0 && <span style={reviewMetricStyle(true)}>{openComments.length} open comments</span>}"
+      ],
+      "newLines": [
+        "\t\t\t\t\t\t\t\t<div style={{ display: 'grid', gap: 5, minWidth: 150, fontSize: 12, color: palette.muted }}>",
+        "\t\t\t\t\t\t\t\t\t<span>{reviewedHunks} of {totalHunks} hunks reviewed · {diffFiles.length} files</span>",
+        "\t\t\t\t\t\t\t\t\t<div role=\"progressbar\" aria-label=\"Review progress\" aria-valuenow={reviewedHunks} aria-valuemin={0} aria-valuemax={totalHunks || 1} style={{ height: 4, borderRadius: 4, background: palette.border, overflow: 'hidden' }}>",
+        "\t\t\t\t\t\t\t\t\t\t<div style={{ height: '100%', width: `${totalHunks ? reviewedHunks / totalHunks * 100 : 0}%`, background: palette.button }} />",
+        "\t\t\t\t\t\t\t\t\t</div>"
+      ],
+      "removedLines": [
+        "\t\t\t\t\t\t\t\t<div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12, color: palette.muted }}>",
+        "\t\t\t\t\t\t\t\t\t<span style={reviewMetricStyle()}>{diffFiles.length} files</span>",
+        "\t\t\t\t\t\t\t\t\t<span style={reviewMetricStyle()}>{diffTotals.pending} pending</span>",
+        "\t\t\t\t\t\t\t\t\t<span style={reviewMetricStyle()}>{diffTotals.approved} approved</span>",
+        "\t\t\t\t\t\t\t\t\t<span style={reviewMetricStyle()}>{diffTotals.rejected} rejected</span>",
+        "\t\t\t\t\t\t\t\t\t{openComments.length > 0 && <span style={reviewMetricStyle(true)}>{openComments.length} open comments</span>}"
+      ],
+      "addedLines": [
+        "\t\t\t\t\t\t\t\t<div style={{ display: 'grid', gap: 5, minWidth: 150, fontSize: 12, color: palette.muted }}>",
+        "\t\t\t\t\t\t\t\t\t<span>{reviewedHunks} of {totalHunks} hunks reviewed · {diffFiles.length} files</span>",
+        "\t\t\t\t\t\t\t\t\t<div role=\"progressbar\" aria-label=\"Review progress\" aria-valuenow={reviewedHunks} aria-valuemin={0} aria-valuemax={totalHunks || 1} style={{ height: 4, borderRadius: 4, background: palette.border, overflow: 'hidden' }}>",
+        "\t\t\t\t\t\t\t\t\t\t<div style={{ height: '100%', width: `${totalHunks ? reviewedHunks / totalHunks * 100 : 0}%`, background: palette.button }} />",
+        "\t\t\t\t\t\t\t\t\t</div>"
+      ],
+      "status": "pending",
+      "sourceRoundId": 2,
+      "aliases": [
+        {
+          "roundId": 2,
+          "changeId": "src/webview/review/App.jsx:302:2"
+        },
+        {
+          "roundId": 6,
+          "changeId": "src/webview/review/App.jsx:304:2"
+        },
+        {
+          "roundId": 7,
+          "changeId": "src/webview/review/App.jsx:306:1"
+        },
+        {
+          "roundId": 8,
+          "changeId": "src/webview/review/App.jsx:310:5"
+        }
+      ]
+    },
+    {
+      "id": "r2:src/webview/review/App.jsx:320:3",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 1",
+      "startLine": 321,
+      "endLine": 321,
+      "oldLines": [],
+      "newLines": [
+        "\t\t\t\t\t\t\t\t{/* Completion requires every hunk to be reviewed and every open comment to be resolved. */}"
+      ],
+      "removedLines": [],
+      "addedLines": [
+        "\t\t\t\t\t\t\t\t{/* Completion requires every hunk to be reviewed and every open comment to be resolved. */}"
+      ],
+      "status": "pending",
+      "sourceRoundId": 2,
+      "aliases": [
+        {
+          "roundId": 2,
+          "changeId": "src/webview/review/App.jsx:320:3"
+        },
+        {
+          "roundId": 3,
+          "changeId": "src/webview/review/App.jsx:322:2"
+        },
+        {
+          "roundId": 4,
+          "changeId": "src/webview/review/App.jsx:321:1"
+        }
+      ]
+    },
+    {
+      "id": "r2:src/webview/review/App.jsx:360:4",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 3",
+      "startLine": 362,
+      "endLine": 362,
+      "oldLines": [
+        "\t\t\t\t\t\t{feedbackPending && <div style={feedbackBannerStyle()}>All hunks reviewed · {openComments.length} comment{openComments.length === 1 ? '' : 's'} still need changes</div>}"
+      ],
+      "newLines": [
+        "\t\t\t\t\t\t{feedbackPending && <div style={feedbackBannerStyle()}>All hunks reviewed. {openComments.length} open comment{openComments.length === 1 ? '' : 's'} remain. Use Request changes to send feedback to your agent, or resolve comments that no longer apply.</div>}"
+      ],
+      "removedLines": [
+        "\t\t\t\t\t\t{feedbackPending && <div style={feedbackBannerStyle()}>All hunks reviewed · {openComments.length} comment{openComments.length === 1 ? '' : 's'} still need changes</div>}"
+      ],
+      "addedLines": [
+        "\t\t\t\t\t\t{feedbackPending && <div style={feedbackBannerStyle()}>All hunks reviewed. {openComments.length} open comment{openComments.length === 1 ? '' : 's'} remain. Use Request changes to send feedback to your agent, or resolve comments that no longer apply.</div>}"
+      ],
+      "status": "pending",
+      "sourceRoundId": 2,
+      "aliases": [
+        {
+          "roundId": 2,
+          "changeId": "src/webview/review/App.jsx:360:4"
+        },
+        {
+          "roundId": 3,
+          "changeId": "src/webview/review/App.jsx:362:3"
+        }
+      ]
+    },
+    {
+      "id": "r2:src/webview/review/App.jsx:1174:5",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 5",
+      "startLine": 1174,
+      "endLine": 1182,
+      "oldLines": [],
+      "newLines": [
+        "function feedbackBannerStyle() {",
+        "\treturn {",
+        "\t\t...completeBannerStyle(),",
+        "\t\tborder: `1px solid ${palette.warn}`,",
+        "\t\tbackground: 'var(--vscode-inputValidation-warningBackground, var(--vscode-editor-background))',",
+        "\t\tcolor: 'var(--vscode-inputValidation-warningForeground, var(--vscode-editor-foreground))',",
+        "\t};",
+        "}",
+        ""
+      ],
+      "removedLines": [],
+      "addedLines": [
+        "function feedbackBannerStyle() {",
+        "\treturn {",
+        "\t\t...completeBannerStyle(),",
+        "\t\tborder: `1px solid ${palette.warn}`,",
+        "\t\tbackground: 'var(--vscode-inputValidation-warningBackground, var(--vscode-editor-background))',",
+        "\t\tcolor: 'var(--vscode-inputValidation-warningForeground, var(--vscode-editor-foreground))',",
+        "\t};",
+        "}",
+        ""
+      ],
+      "status": "pending",
+      "sourceRoundId": 2,
+      "aliases": [
+        {
+          "roundId": 2,
+          "changeId": "src/webview/review/App.jsx:1174:5"
+        }
+      ]
+    },
+    {
+      "id": "r2:src/extension.ts:1035:1",
+      "filePath": "src/extension.ts",
+      "title": "Hunk 1",
+      "startLine": 1035,
+      "endLine": 1043,
+      "oldLines": [],
+      "newLines": [
+        "\tif (reviewName.endsWith('.diff')) {",
+        "\t\tconst state = await readDiffReviewState(reviewName, reviewUri);",
+        "\t\tconst openCommentCount = (state.comments ?? []).filter(comment => comment.status === 'open').length;",
+        "\t\tif (openCommentCount > 0) {",
+        "\t\t\tvoid vscode.window.showWarningMessage(`Review still has ${openCommentCount} open comment${openCommentCount === 1 ? '' : 's'}. Request changes or resolve them before completing.`);",
+        "\t\t\tawait readReviewAndSend(panel, reviewName, reviewUri);",
+        "\t\t\treturn;",
+        "\t\t}",
+        "\t}"
+      ],
+      "removedLines": [],
+      "addedLines": [
+        "\tif (reviewName.endsWith('.diff')) {",
+        "\t\tconst state = await readDiffReviewState(reviewName, reviewUri);",
+        "\t\tconst openCommentCount = (state.comments ?? []).filter(comment => comment.status === 'open').length;",
+        "\t\tif (openCommentCount > 0) {",
+        "\t\t\tvoid vscode.window.showWarningMessage(`Review still has ${openCommentCount} open comment${openCommentCount === 1 ? '' : 's'}. Request changes or resolve them before completing.`);",
+        "\t\t\tawait readReviewAndSend(panel, reviewName, reviewUri);",
+        "\t\t\treturn;",
+        "\t\t}",
+        "\t}"
+      ],
+      "status": "approved",
+      "sourceRoundId": 2,
+      "aliases": [
+        {
+          "roundId": 2,
+          "changeId": "src/extension.ts:1035:1"
+        }
+      ]
+    },
+    {
+      "id": "r5:src/webview/review/App.jsx:409:1",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 1",
+      "startLine": 409,
+      "endLine": 412,
+      "oldLines": [],
+      "newLines": [
+        "\t\t\t\t\t\t\t\t\t\tconst lastTouchedRound = change.aliases?.at(-1)?.roundId || change.sourceRoundId;",
+        "\t\t\t\t\t\t\t\t\t\tconst roundLabel = lastTouchedRound === latestRoundId",
+        "\t\t\t\t\t\t\t\t\t\t\t? change.sourceRoundId === latestRoundId ? 'New this round' : 'Updated this round'",
+        "\t\t\t\t\t\t\t\t\t\t\t: lastTouchedRound ? `Carried from round ${lastTouchedRound}` : '';"
+      ],
+      "removedLines": [],
+      "addedLines": [
+        "\t\t\t\t\t\t\t\t\t\tconst lastTouchedRound = change.aliases?.at(-1)?.roundId || change.sourceRoundId;",
+        "\t\t\t\t\t\t\t\t\t\tconst roundLabel = lastTouchedRound === latestRoundId",
+        "\t\t\t\t\t\t\t\t\t\t\t? change.sourceRoundId === latestRoundId ? 'New this round' : 'Updated this round'",
+        "\t\t\t\t\t\t\t\t\t\t\t: lastTouchedRound ? `Carried from round ${lastTouchedRound}` : '';"
+      ],
+      "status": "pending",
+      "sourceRoundId": 5,
+      "aliases": [
+        {
+          "roundId": 5,
+          "changeId": "src/webview/review/App.jsx:409:1"
+        }
+      ]
+    },
+    {
+      "id": "r5:src/webview/review/App.jsx:428:2",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 2",
+      "startLine": 428,
+      "endLine": 428,
+      "oldLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t{change.title || 'Changed hunk'}"
+      ],
+      "newLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t{change.title || 'Changed hunk'}{roundLabel && <span style={{ color: palette.muted, marginLeft: 8 }}>· {roundLabel}</span>}"
+      ],
+      "removedLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t{change.title || 'Changed hunk'}"
+      ],
+      "addedLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t{change.title || 'Changed hunk'}{roundLabel && <span style={{ color: palette.muted, marginLeft: 8 }}>· {roundLabel}</span>}"
+      ],
+      "status": "pending",
+      "sourceRoundId": 5,
+      "aliases": [
+        {
+          "roundId": 5,
+          "changeId": "src/webview/review/App.jsx:428:2"
+        }
+      ]
+    },
+    {
+      "id": "r6:src/webview/review/App.jsx:299:1",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 1",
+      "startLine": 299,
+      "endLine": 299,
+      "oldLines": [
+        "\t\t\t\t\t\t<div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start' }}>"
+      ],
+      "newLines": [
+        "\t\t\t\t\t\t<div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start', flexWrap: 'wrap' }}>"
+      ],
+      "removedLines": [
+        "\t\t\t\t\t\t<div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start' }}>"
+      ],
+      "addedLines": [
+        "\t\t\t\t\t\t<div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start', flexWrap: 'wrap' }}>"
+      ],
+      "status": "pending",
+      "sourceRoundId": 6,
+      "aliases": [
+        {
+          "roundId": 6,
+          "changeId": "src/webview/review/App.jsx:299:1"
+        }
+      ]
+    },
+    {
+      "id": "r7:src/webview/review/App.jsx:350:2",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 2",
+      "startLine": 350,
+      "endLine": 350,
+      "oldLines": [
+        "\t\t\t\t\t\t\t\t\t{!isHistoricalRound && <button style={secondaryButtonStyle()} disabled={openComments.length === 0} title=\"Copy a request for the agent to read the feedback file\" onClick={() => { vscode.postMessage({ action: 'requestChanges' }); setStatusText('Copied the feedback file request for your agent.'); }}>Request changes ({openComments.length})</button>}"
+      ],
+      "newLines": [
+        "\t\t\t\t\t\t\t\t\t{!isHistoricalRound && <button style={secondaryButtonStyle()} disabled={openComments.length === 0} title=\"Copy a task to paste into your Codex chat\" onClick={() => { vscode.postMessage({ action: 'requestChanges' }); setStatusText('Task copied. Paste it into your Codex chat to start the next round.'); }}>Copy agent task ({openComments.length})</button>}"
+      ],
+      "removedLines": [
+        "\t\t\t\t\t\t\t\t\t{!isHistoricalRound && <button style={secondaryButtonStyle()} disabled={openComments.length === 0} title=\"Copy a request for the agent to read the feedback file\" onClick={() => { vscode.postMessage({ action: 'requestChanges' }); setStatusText('Copied the feedback file request for your agent.'); }}>Request changes ({openComments.length})</button>}"
+      ],
+      "addedLines": [
+        "\t\t\t\t\t\t\t\t\t{!isHistoricalRound && <button style={secondaryButtonStyle()} disabled={openComments.length === 0} title=\"Copy a task to paste into your Codex chat\" onClick={() => { vscode.postMessage({ action: 'requestChanges' }); setStatusText('Task copied. Paste it into your Codex chat to start the next round.'); }}>Copy agent task ({openComments.length})</button>}"
+      ],
+      "status": "pending",
+      "sourceRoundId": 7,
+      "aliases": [
+        {
+          "roundId": 7,
+          "changeId": "src/webview/review/App.jsx:350:2"
+        }
+      ]
+    },
+    {
+      "id": "r7:src/webview/review/App.jsx:498:3",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 7",
+      "startLine": 503,
+      "endLine": 503,
+      "oldLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t{/* Review comments follow the stable hunk ID when a later round revises its code. */}"
+      ],
+      "newLines": [],
+      "removedLines": [
+        "\t\t\t\t\t\t\t\t\t\t\t\t\t{/* Review comments follow the stable hunk ID when a later round revises its code. */}"
+      ],
+      "addedLines": [],
+      "status": "pending",
+      "sourceRoundId": 7,
+      "aliases": [
+        {
+          "roundId": 7,
+          "changeId": "src/webview/review/App.jsx:498:3"
+        },
+        {
+          "roundId": 8,
+          "changeId": "src/webview/review/App.jsx:502:7"
+        }
+      ]
+    },
+    {
+      "id": "r7:src/webview/review/App.jsx:961:4",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 4",
+      "startLine": 961,
+      "endLine": 971,
+      "oldLines": [],
+      "newLines": [
+        "function reviewMetricStyle(openComment = false) {",
+        "\treturn {",
+        "\t\tborder: `1px solid ${openComment ? palette.warn : palette.border}`,",
+        "\t\tborderRadius: 999,",
+        "\t\tpadding: '2px 7px',",
+        "\t\tcolor: openComment ? palette.warn : palette.muted,",
+        "\t\tfontWeight: openComment ? 600 : 400,",
+        "\t\twhiteSpace: 'nowrap',",
+        "\t};",
+        "}",
+        ""
+      ],
+      "removedLines": [],
+      "addedLines": [
+        "function reviewMetricStyle(openComment = false) {",
+        "\treturn {",
+        "\t\tborder: `1px solid ${openComment ? palette.warn : palette.border}`,",
+        "\t\tborderRadius: 999,",
+        "\t\tpadding: '2px 7px',",
+        "\t\tcolor: openComment ? palette.warn : palette.muted,",
+        "\t\tfontWeight: openComment ? 600 : 400,",
+        "\t\twhiteSpace: 'nowrap',",
+        "\t};",
+        "}",
+        ""
+      ],
+      "status": "pending",
+      "sourceRoundId": 7,
+      "aliases": [
+        {
+          "roundId": 7,
+          "changeId": "src/webview/review/App.jsx:961:4"
+        }
+      ]
+    },
+    {
+      "id": "r8:src/webview/review/App.jsx:0:1",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 1",
+      "startLine": 1,
+      "endLine": 1,
+      "oldLines": [
+        "function reviewMetricStyle(openComment = false) {",
+        "\treturn {",
+        "\t\tborder: `1px solid ${openComment ? palette.warn : palette.border}`,",
+        "\t\tborderRadius: 999,",
+        "\t\tpadding: '2px 7px',",
+        "\t\tcolor: openComment ? palette.warn : palette.muted,",
+        "\t\tfontWeight: openComment ? 600 : 400,",
+        "\t\twhiteSpace: 'nowrap',",
+        "\t};",
+        "}",
+        ""
+      ],
+      "newLines": [],
+      "removedLines": [
+        "function reviewMetricStyle(openComment = false) {",
+        "\treturn {",
+        "\t\tborder: `1px solid ${openComment ? palette.warn : palette.border}`,",
+        "\t\tborderRadius: 999,",
+        "\t\tpadding: '2px 7px',",
+        "\t\tcolor: openComment ? palette.warn : palette.muted,",
+        "\t\tfontWeight: openComment ? 600 : 400,",
+        "\t\twhiteSpace: 'nowrap',",
+        "\t};",
+        "}",
+        ""
+      ],
+      "addedLines": [],
+      "status": "pending",
+      "sourceRoundId": 8,
+      "aliases": [
+        {
+          "roundId": 8,
+          "changeId": "src/webview/review/App.jsx:0:1"
+        }
+      ]
+    },
+    {
+      "id": "r8:src/webview/review/App.jsx:224:3",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 3",
+      "startLine": 224,
+      "endLine": 224,
+      "oldLines": [],
+      "newLines": [
+        "\t\t// Surface only comments whose hunk is absent; attached comments render inside that hunk."
+      ],
+      "removedLines": [],
+      "addedLines": [
+        "\t\t// Surface only comments whose hunk is absent; attached comments render inside that hunk."
+      ],
+      "status": "pending",
+      "sourceRoundId": 8,
+      "aliases": [
+        {
+          "roundId": 8,
+          "changeId": "src/webview/review/App.jsx:224:3"
+        }
+      ]
+    },
+    {
+      "id": "r8:src/webview/review/App.jsx:226:4",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 4",
+      "startLine": 226,
+      "endLine": 227,
+      "oldLines": [],
+      "newLines": [
+        "\t\tconst totalHunks = diffTotals.pending + diffTotals.approved + diffTotals.rejected;",
+        "\t\tconst reviewedHunks = diffTotals.approved + diffTotals.rejected;"
+      ],
+      "removedLines": [],
+      "addedLines": [
+        "\t\tconst totalHunks = diffTotals.pending + diffTotals.approved + diffTotals.rejected;",
+        "\t\tconst reviewedHunks = diffTotals.approved + diffTotals.rejected;"
+      ],
+      "status": "pending",
+      "sourceRoundId": 8,
+      "aliases": [
+        {
+          "roundId": 8,
+          "changeId": "src/webview/review/App.jsx:226:4"
+        }
+      ]
+    },
+    {
+      "id": "r8:src/webview/review/App.jsx:316:6",
+      "filePath": "src/webview/review/App.jsx",
+      "title": "Hunk 6",
+      "startLine": 316,
+      "endLine": 316,
+      "oldLines": [],
+      "newLines": [
+        "\t\t\t\t\t\t\t\t{openComments.length > 0 && <span style={{ color: palette.warn, fontSize: 12, fontWeight: 600 }}>{openComments.length} open comments</span>}"
+      ],
+      "removedLines": [],
+      "addedLines": [
+        "\t\t\t\t\t\t\t\t{openComments.length > 0 && <span style={{ color: palette.warn, fontSize: 12, fontWeight: 600 }}>{openComments.length} open comments</span>}"
+      ],
+      "status": "pending",
+      "sourceRoundId": 8,
+      "aliases": [
+        {
+          "roundId": 8,
+          "changeId": "src/webview/review/App.jsx:316:6"
+        }
+      ]
+    }
+  ]
+}

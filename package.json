@@ -67,6 +67,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "document-oriented-vibing.renameAgent",
+        "title": "DOV: Rename Agent",
+        "icon": "$(edit)"
+      },
+      {
         "command": "document-oriented-vibing.openAgent",
         "title": "Codex: Switch Agent"
       },
@@ -103,6 +108,13 @@
       ]
     },
     "menus": {
+      "view/item/context": [
+        {
+          "command": "document-oriented-vibing.renameAgent",
+          "when": "viewItem == dovAgent",
+          "group": "inline"
+        }
+      ],
       "view/title": [
         {
           "command": "document-oriented-vibing.newSidebarAgent",
@@ -118,6 +130,10 @@
       "commandPalette": [
         {
           "command": "document-oriented-vibing.openAgent",
+          "when": "false"
+        },
+        {
+          "command": "document-oriented-vibing.renameAgent",
           "when": "false"
         }
       ]

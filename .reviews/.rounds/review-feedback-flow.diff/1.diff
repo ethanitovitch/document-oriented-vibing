@@ -1,0 +1,13 @@
+diff --git a/src/webview/review/App.jsx b/src/webview/review/App.jsx
+--- a/src/webview/review/App.jsx
++++ b/src/webview/review/App.jsx
+@@ -337 +337 @@
+-								{!isHistoricalRound && <button style={secondaryButtonStyle()} onClick={() => vscode.postMessage({ action: 'requestChanges' })}>Request changes ({openComments.length})</button>}
++								{!isHistoricalRound && <button style={secondaryButtonStyle()} disabled={openComments.length === 0} title="Copy open comments to paste into an agent chat" onClick={() => { vscode.postMessage({ action: 'requestChanges' }); setStatusText(`Copied ${openComments.length} open comments for your agent.`); }}>Request changes ({openComments.length})</button>}
+@@ -416,0 +417 @@
++												{comments.some(comment => comment.roundId === selectedRoundId && comment.filePath === file.path && comment.changeId === change.id && comment.status !== 'resolved') && <span style={statusStyle('pending')}>Comment</span>}
+@@ -480,2 +481,2 @@
+-														<input aria-label={`Comment on ${file.path} lines ${change.startLine}-${change.endLine}`} placeholder="Comment on this change" value={commentDrafts[change.id] || ''} onChange={(event) => setCommentDrafts({ ...commentDrafts, [change.id]: event.target.value })} style={{ flex: 1, minWidth: 0 }} />
+-														<button style={secondaryButtonStyle()} disabled={!commentDrafts[change.id]?.trim()} onClick={() => { vscode.postMessage({ action: 'addComment', filePath: file.path, changeId: change.id, text: commentDrafts[change.id] }); setCommentDrafts({ ...commentDrafts, [change.id]: '' }); }}>Comment</button>
++														<input aria-label={`Comment on ${file.path} lines ${change.startLine}-${change.endLine}`} placeholder="Comment on this change" value={commentDrafts[change.id] || ''} onChange={(event) => setCommentDrafts({ ...commentDrafts, [change.id]: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter' && commentDrafts[change.id]?.trim()) { vscode.postMessage({ action: 'addComment', filePath: file.path, changeId: change.id, text: commentDrafts[change.id] }); setCommentDrafts({ ...commentDrafts, [change.id]: '' }); setStatusText(`Added comment on ${file.path}.`); } }} style={{ flex: 1, minWidth: 0 }} />
++														<button style={secondaryButtonStyle()} disabled={!commentDrafts[change.id]?.trim()} onClick={() => { vscode.postMessage({ action: 'addComment', filePath: file.path, changeId: change.id, text: commentDrafts[change.id] }); setCommentDrafts({ ...commentDrafts, [change.id]: '' }); setStatusText(`Added comment on ${file.path}.`); }}>Comment</button>

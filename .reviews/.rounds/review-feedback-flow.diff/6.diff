@@ -1,0 +1,17 @@
+diff --git a/src/webview/review/App.jsx b/src/webview/review/App.jsx
+--- a/src/webview/review/App.jsx
++++ b/src/webview/review/App.jsx
+@@ -299 +299 @@
+-						<div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start' }}>
++						<div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start', flexWrap: 'wrap' }}>
+@@ -304,3 +304,7 @@
+-							<div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+-								<div style={{ fontSize: 12, color: palette.muted, whiteSpace: 'nowrap' }}>
+-									{diffFiles.length} files · {diffTotals.pending} pending · {diffTotals.approved} approved · {diffTotals.rejected} rejected · {openComments.length} open comments
++							<div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
++								<div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 12, color: palette.muted }}>
++									<span>{diffFiles.length} files</span>
++									<span>{diffTotals.pending} pending</span>
++									<span>{diffTotals.approved} approved</span>
++									<span>{diffTotals.rejected} rejected</span>
++									{openComments.length > 0 && <span style={{ color: palette.warn, fontWeight: 600 }}>{openComments.length} open comments</span>}

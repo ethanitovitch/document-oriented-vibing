@@ -28,7 +28,7 @@ Additionally if your forgot to add `+review` to your prompt, you can always capt
 
 ## Agent tabs and status
 
-Open the **Codex sidebar** to see its **Agents** section. Click a conversation to switch the Codex chat in place. The **+** button starts a new chat in the same sidebar. There is no need to open DOV Home or Explorer. You can drag the Agents section header above the Codex chat if you prefer it at the top.
+Open the **Codex sidebar** to see its **Agents** section, which lists top-level conversations without subagents. Click a conversation to switch the Codex chat in place, or use its pencil action to rename it. Names are shared with Codex, so renaming a conversation in either place updates the Agents list. The **+** button starts a new chat in the same sidebar. There is no need to open DOV Home or Explorer. You can drag the Agents section header above the Codex chat if you prefer it at the top.
 
 **DOV: New Agent Tab** remains available separately if you want editor tabs.
 
@@ -78,10 +78,10 @@ node esbuild.js
 
 # Package as .vsix
 pnpm add -g @vscode/vsce
-vsce package --no-dependencies
+vsce package --no-dependencies --out document-oriented-vibing.vsix
 
 # Install in your VS Code-compatible editor
-code --install-extension document-oriented-vibing-0.0.1.vsix --force
+code --install-extension document-oriented-vibing.vsix --force
 ```
 
 ## Workflow Modes
@@ -170,6 +170,7 @@ Feature diagram capabilities:
 ```
 
 The extension watches `.reviews/*.diff` and `.reviews/*.json` and opens a review page for the latest review artifact. Diff review approvals are saved to a sibling `.state.json` file.
+In a `.diff` review, click a file or hunk to open VS Code's diff editor with both removed and added lines. This workspace defaults to the one-column **Inline** diff view; use the diff editor's **Diff View** menu to switch layouts.
 
 It also watches `.features/*.md` for changes and renders them as interactive diagrams in a webview panel. From `DOV: Home`, DOV checks your `CLAUDE.md`, Codex `AGENTS.md` pointer, and repo-scoped DOV skill for versioned markers. The setup button adds or updates any missing pieces.
 

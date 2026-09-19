@@ -2,12 +2,15 @@ import * as assert from 'assert';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
-import { AgentThread, CodexThreadIndex, observedStatus, parseSessionLine, sessionMetadata, updateThread, userPromptTimes } from '../codex-threads';
+import { AgentThread, CodexThreadIndex, isSubagentSession, observedStatus, parseSessionLine, sessionMetadata, updateThread, userPromptTimes } from '../codex-threads';
 import { extractApplyPatchInputs } from '../codex-session';
 
 suite('Codex session compatibility', () => {
 	test('reads current nested metadata and ignores partial or null records', () => {
 		assert.deepStrictEqual(sessionMetadata([{ type: 'session_meta', payload: { id: 'thread-1', cwd: '/repo' } }]), { id: 'thread-1', cwd: '/repo' });
+		assert.strictEqual(isSubagentSession([{ type: 'session_meta', payload: { source: 'vscode' } }]), false);
+		assert.strictEqual(isSubagentSession([{ type: 'session_meta', payload: { source: 'subagent' } }]), true);
+		assert.strictEqual(isSubagentSession([{ type: 'session_meta', payload: { source: { subagent: { other: 'guardian' } } } }]), true);
 		for (const input of ['null', '[1]', '{"type":', '']) { assert.deepStrictEqual(parseSessionLine(input), []); }
 	});
 	test('uses real prompt events instead of injected context messages', () => {
@@ -50,6 +53,7 @@ suite('Codex session compatibility', () => {
 			const file = path.join(home, 'sessions', 'rollout-thread.jsonl');
 			await fs.writeFile(file, line({ type: 'session_meta', payload: { id: 'thread', cwd: '/repo' } }) + line({ type: 'event_msg', payload: { type: 'user_message', message: 'No edits yet' } }));
 			await fs.writeFile(path.join(home, 'sessions', 'other.jsonl'), line({ type: 'session_meta', payload: { id: 'other', cwd: '/different' } }));
+			await fs.writeFile(path.join(home, 'sessions', 'child.jsonl'), line({ type: 'session_meta', payload: { id: 'child', cwd: '/repo', source: { subagent: { other: 'guardian' } } } }));
 			const index = new CodexThreadIndex();
 			let threads = await index.list(['/repo']);
 			assert.deepStrictEqual(threads.map(thread => thread.id), ['thread']);

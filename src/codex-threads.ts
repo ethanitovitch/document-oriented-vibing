@@ -33,6 +33,12 @@ export function sessionMetadata(records: SessionRecord[]): { id: string; cwd: st
 	return typeof meta?.id === 'string' && typeof meta.cwd === 'string'
 		? { id: meta.id, cwd: meta.cwd } : undefined;
 }
+export function isSubagentSession(records: SessionRecord[]): boolean {
+	const source = records.find(record => record.type === 'session_meta')?.payload?.source;
+	return source === 'subagent' || (
+		typeof source === 'object' && source !== null && !Array.isArray(source) && 'subagent' in source
+	);
+}
 export function updateThread(thread: AgentThread, record: SessionRecord): void {
 	const payload = record.payload;
 	if (!payload) { return; }
@@ -86,6 +92,7 @@ export class CodexThreadIndex {
 								const meta = sessionMetadata(records);
 								if (!meta) { continue; }
 								if (!roots.some(root => path.resolve(root) === path.resolve(meta.cwd))) { break; }
+								if (isSubagentSession(records)) { break; }
 								thread = { ...meta, file, title: 'Codex conversation', status: 'Unknown', updatedAt: stat.mtimeMs };
 							}
 							for (const record of records) { updateThread(thread, record); }

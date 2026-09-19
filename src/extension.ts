@@ -23,6 +23,7 @@ import {
 
 const previewPanels = new Map<string, vscode.WebviewPanel>();
 const reviewPanels = new Map<string, vscode.WebviewPanel>();
+const reviewCaptureLocks = new Map<string, Promise<void>>();
 const CLAUDE_INSTRUCTION_FILE_NAME = 'CLAUDE.md';
 const CODEX_INSTRUCTION_FILE_NAME = 'AGENTS.md';
 const DOV_SKILL_NAME = 'document-oriented-vibing';
@@ -39,7 +40,11 @@ interface DiffReviewChange {
 	endLine: number;
 	oldLines: string[];
 	newLines: string[];
+	removedLines: string[];
+	addedLines: string[];
 	status: ReviewStatus;
+	sourceRoundId?: number;
+	aliases?: Array<{ roundId: number; changeId: string }>;
 }
 
 interface DiffReviewFile {
@@ -52,6 +57,28 @@ interface DiffReviewState {
 	reviewName: string;
 	updatedAt: string;
 	changes: Record<string, ReviewStatus>;
+	rounds?: ReviewRound[];
+	comments?: ReviewComment[];
+	completedAt?: string;
+	queue?: DiffReviewChange[];
+}
+
+interface ReviewRound {
+	id: number;
+	createdAt: string;
+	threadId: string;
+	changes: Record<string, ReviewStatus>;
+}
+
+interface ReviewComment {
+	id: string;
+	roundId: number;
+	filePath: string;
+	changeId: string;
+	originalChangeId?: string;
+	text: string;
+	createdAt: string;
+	status: 'open' | 'addressed' | 'resolved';
 }
 
 interface ReviewChange {
@@ -124,10 +151,13 @@ interface CodexPatchHunk {
 let pendingReviewDecorationType: vscode.TextEditorDecorationType | undefined;
 let approvedReviewDecorationType: vscode.TextEditorDecorationType | undefined;
 let rejectedReviewDecorationType: vscode.TextEditorDecorationType | undefined;
+let commentReviewDecorationType: vscode.TextEditorDecorationType | undefined;
 let activeDiffReview: {
 	reviewName: string;
 	reviewUri: vscode.Uri;
 	files: DiffReviewFile[];
+	comments: ReviewComment[];
+	latestRoundId: number;
 } | undefined;
 let pendingCopyForLlmShortcut: { editorState: string; timestamp: number } | undefined;
 let reviewCodeLensProvider: ReviewCodeLensProvider | undefined;
@@ -210,6 +240,14 @@ export function activate(context: vscode.ExtensionContext) {
 		'document-oriented-vibing.openDiffReviewFile',
 		(filePath: string) => void openDiffReviewForFile(filePath),
 	);
+	const openReviewFeedbackDisposable = vscode.commands.registerCommand(
+		'document-oriented-vibing.openReviewFeedback',
+		() => void openActiveReviewFeedback(),
+	);
+	const commentDiffChangeDisposable = vscode.commands.registerCommand(
+		'document-oriented-vibing.commentDiffChange',
+		(changeId: string) => void promptForActiveDiffComment(changeId),
+	);
 	const approveAllDiffChangesDisposable = vscode.commands.registerCommand(
 		'document-oriented-vibing.approveAllDiffChanges',
 		() => void setAllActiveDiffChangeStatuses('approved'),
@@ -240,6 +278,11 @@ export function activate(context: vscode.ExtensionContext) {
 		isWholeLine: true,
 		backgroundColor: new vscode.ThemeColor('diffEditor.removedTextBackground'),
 		overviewRulerColor: new vscode.ThemeColor('editorOverviewRuler.deletedForeground'),
+		overviewRulerLane: vscode.OverviewRulerLane.Right,
+	});
+	commentReviewDecorationType = vscode.window.createTextEditorDecorationType({
+		isWholeLine: true,
+		overviewRulerColor: new vscode.ThemeColor('editorOverviewRuler.infoForeground'),
 		overviewRulerLane: vscode.OverviewRulerLane.Right,
 	});
 
@@ -277,6 +320,8 @@ export function activate(context: vscode.ExtensionContext) {
 		rejectDiffFileDisposable,
 		undoDiffFileDisposable,
 		openDiffReviewFileDisposable,
+		openReviewFeedbackDisposable,
+		commentDiffChangeDisposable,
 		approveAllDiffChangesDisposable,
 		rejectAllDiffChangesDisposable,
 		reviewCodeLensDisposable,
@@ -287,6 +332,7 @@ export function activate(context: vscode.ExtensionContext) {
 		pendingReviewDecorationType,
 		approvedReviewDecorationType,
 		rejectedReviewDecorationType,
+		commentReviewDecorationType,
 	);
 }
 
@@ -732,13 +778,51 @@ async function captureCodexReview(context: vscode.ExtensionContext, options: Cap
 		await vscode.workspace.fs.createDirectory(reviewsFolderUri);
 
 		const reviewUri = vscode.Uri.joinPath(reviewsFolderUri, normalizedReviewName);
+		await withReviewCaptureLock(reviewUri.fsPath, async () => {
+		const state = await readDiffReviewState(normalizedReviewName, reviewUri);
+		const rounds = state.rounds ?? [];
+		if (rounds.length === 0) {
+			try {
+				const oldDiff = await vscode.workspace.fs.readFile(reviewUri);
+				await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(reviewsFolderUri, '.rounds', normalizedReviewName));
+				await vscode.workspace.fs.writeFile(getReviewRoundUri(reviewUri, 1), oldDiff);
+				rounds.push({ id: 1, createdAt: state.updatedAt, threadId: 'legacy', changes: { ...state.changes } });
+			} catch { /* No existing review. */ }
+		}
+		state.rounds = rounds;
+		await ensureReviewQueue(state, reviewUri);
+		for (const change of state.queue ?? []) { change.status = state.changes[change.id] ?? change.status; }
+		const latestRound = rounds.at(-1);
+		if (latestRound) {
+			latestRound.changes = { ...state.changes };
+		}
+		const nextRoundId = (latestRound?.id ?? 0) + 1;
+		const snapshotUri = getReviewRoundUri(reviewUri, nextRoundId);
+		await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(reviewsFolderUri, '.rounds', normalizedReviewName));
+		await vscode.workspace.fs.writeFile(snapshotUri, Buffer.from(diff, 'utf8'));
+		state.rounds = [...rounds, { id: nextRoundId, createdAt: new Date().toISOString(), threadId: threadId ?? '', changes: {} }];
+		state.queue = mergeReviewQueue(state.queue ?? [], parseUnifiedDiff(diff), nextRoundId);
+		state.changes = Object.fromEntries(state.queue.map(change => [change.id, change.status]));
+		state.completedAt = undefined;
+		state.comments ??= [];
+		await writeDiffReviewState(reviewUri, state);
 		await vscode.workspace.fs.writeFile(reviewUri, Buffer.from(diff, 'utf8'));
+		});
 		openReviewPanel(context, normalizedReviewName, reviewUri);
 
 		const fileCount = new Set(patchHunks.map((hunk) => hunk.filePath)).size;
 		void vscode.window.showInformationMessage(`Captured ${fileCount} Codex-written file${fileCount === 1 ? '' : 's'} in ${normalizedReviewName}.`);
 	} catch (error) {
 		void vscode.window.showErrorMessage(`Could not capture DOV review: ${getErrorMessage(error)}`);
+	}
+}
+
+async function withReviewCaptureLock(key: string, work: () => Promise<void>): Promise<void> {
+	const previous = reviewCaptureLocks.get(key) ?? Promise.resolve();
+	const current = previous.catch(() => undefined).then(work);
+	reviewCaptureLocks.set(key, current);
+	try { await current; } finally {
+		if (reviewCaptureLocks.get(key) === current) { reviewCaptureLocks.delete(key); }
 	}
 }
 
@@ -800,6 +884,7 @@ function openReviewPanel(
 
 	const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
 	let fileWatcher: vscode.FileSystemWatcher | undefined;
+	let selectedRoundId: number | undefined;
 	if (workspaceFolder) {
 		const pattern = new vscode.RelativePattern(workspaceFolder, `.reviews/${reviewName}`);
 		fileWatcher = vscode.workspace.createFileSystemWatcher(pattern);
@@ -815,7 +900,47 @@ function openReviewPanel(
 		const action = (message as { action?: unknown }).action;
 
 		if (action === 'ready') {
-			void readReviewAndSend(panel, reviewName, reviewUri);
+			void readReviewAndSend(panel, reviewName, reviewUri, selectedRoundId);
+			return;
+		}
+		if (action === 'selectRound' && reviewName.endsWith('.diff')) {
+			const roundId = (message as { roundId?: unknown }).roundId;
+			selectedRoundId = typeof roundId === 'number' ? roundId : undefined;
+			void readReviewAndSend(panel, reviewName, reviewUri, selectedRoundId);
+			return;
+		}
+		if (action === 'addComment' && reviewName.endsWith('.diff')) {
+			const { filePath, changeId, text } = message as { filePath?: unknown; changeId?: unknown; text?: unknown };
+			if (typeof filePath === 'string' && typeof changeId === 'string' && typeof text === 'string' && text.trim()) {
+				void addReviewComment(reviewName, reviewUri, filePath, changeId, text.trim()).then(() => readReviewAndSend(panel, reviewName, reviewUri, selectedRoundId));
+			}
+			return;
+		}
+		if (action === 'addCommentPrompt' && reviewName.endsWith('.diff')) {
+			const { filePath, changeId } = message as { filePath?: unknown; changeId?: unknown };
+			if (typeof filePath === 'string' && typeof changeId === 'string') {
+				void promptForReviewComment(reviewName, reviewUri, filePath, changeId).then(() => readReviewAndSend(panel, reviewName, reviewUri, selectedRoundId));
+			}
+			return;
+		}
+		if (action === 'setCommentStatus' && reviewName.endsWith('.diff')) {
+			const { commentId, status } = message as { commentId?: unknown; status?: unknown };
+			if (typeof commentId === 'string' && (status === 'open' || status === 'resolved')) {
+				void setReviewCommentStatus(reviewName, reviewUri, commentId, status).then(() => readReviewAndSend(panel, reviewName, reviewUri, selectedRoundId));
+			}
+			return;
+		}
+		if (action === 'requestChanges' && reviewName.endsWith('.diff')) {
+			void copyReviewRequest(reviewName, reviewUri);
+			return;
+		}
+		if (action === 'openFeedbackFile' && reviewName.endsWith('.diff')) {
+			void (async () => {
+				const state = await readDiffReviewState(reviewName, reviewUri);
+				await writeReviewFeedback(reviewUri, state);
+				const document = await vscode.workspace.openTextDocument(getReviewFeedbackUri(reviewUri));
+				await vscode.window.showTextDocument(document, { preview: false });
+			})();
 			return;
 		}
 
@@ -828,6 +953,15 @@ function openReviewPanel(
 			const text = (message as { text?: unknown }).text;
 			if (typeof text === 'string') {
 				void vscode.env.clipboard.writeText(text);
+			}
+			return;
+		}
+
+		if (action === 'openDiffFile' && reviewName.toLowerCase().endsWith('.diff')) {
+			const filePath = (message as { filePath?: unknown }).filePath;
+			const changeId = (message as { changeId?: unknown }).changeId;
+			if (typeof filePath === 'string') {
+				void openDiffReviewForFile(filePath, typeof changeId === 'string' ? changeId : undefined);
 			}
 			return;
 		}
@@ -915,15 +1049,37 @@ async function completeReview(
 		await readReviewAndSend(panel, reviewName, reviewUri);
 		return;
 	}
-
-	const urisToDelete = [reviewUri, getReviewStateUri(reviewUri)];
-	await Promise.all(urisToDelete.map(async (uri) => {
-		try {
-			await vscode.workspace.fs.delete(uri, { useTrash: true });
-		} catch {
-			// Already gone.
+	if (reviewName.endsWith('.diff')) {
+		const state = await readDiffReviewState(reviewName, reviewUri);
+		const openCommentCount = (state.comments ?? []).filter(comment => comment.status === 'open').length;
+		if (openCommentCount > 0) {
+			const bytes = await vscode.workspace.fs.readFile(reviewUri);
+			const { files } = await buildDiffReview(reviewName, reviewUri, Buffer.from(bytes).toString('utf8'));
+			const changes = files.flatMap(file => file.changes);
+			if (changes.length === 0 || changes.some(change => change.status !== 'approved')) {
+				void vscode.window.showWarningMessage(`Review still has ${openCommentCount} open comment${openCommentCount === 1 ? '' : 's'}. Approve every hunk or resolve the comments before completing.`);
+				await readReviewAndSend(panel, reviewName, reviewUri);
+				return;
+			}
 		}
-	}));
+	}
+
+	const reviewTabs = vscode.window.tabGroups.all.flatMap((group) => group.tabs).filter((tab) =>
+		tab.input instanceof vscode.TabInputTextDiff &&
+		tab.input.original.scheme === 'dov-review-base' &&
+		tab.input.original.authority === reviewName,
+	);
+	const sourceUri = reviewTabs.find((tab) => tab.input instanceof vscode.TabInputTextDiff)?.input;
+	if (reviewTabs.length > 0) {
+		const closed = await vscode.window.tabGroups.close(reviewTabs);
+		if (!closed) {
+			return;
+		}
+	}
+
+	const state = await readDiffReviewState(reviewName, reviewUri);
+	state.completedAt = new Date().toISOString();
+	await writeDiffReviewState(reviewUri, state);
 
 	if (activeDiffReview?.reviewName === reviewName) {
 		activeDiffReview = undefined;
@@ -933,6 +1089,10 @@ async function completeReview(
 	}
 
 	panel.dispose();
+	if (sourceUri instanceof vscode.TabInputTextDiff) {
+		const document = await vscode.workspace.openTextDocument(sourceUri.modified);
+		await vscode.window.showTextDocument(document, { preview: false });
+	}
 }
 
 async function getPendingReviewCount(reviewName: string, reviewUri: vscode.Uri): Promise<number> {
@@ -957,13 +1117,18 @@ async function readReviewAndSend(
 	panel: vscode.WebviewPanel,
 	reviewName: string,
 	reviewUri: vscode.Uri,
+	selectedRoundId?: number,
 ): Promise<void> {
 	try {
-		const bytes = await vscode.workspace.fs.readFile(reviewUri);
+		const state = reviewName.endsWith('.diff') ? await readDiffReviewState(reviewName, reviewUri) : undefined;
+		const latestRoundId = state?.rounds?.at(-1)?.id;
+		const historical = selectedRoundId !== undefined && selectedRoundId !== latestRoundId && state?.rounds?.some(round => round.id === selectedRoundId);
+		const bytes = await vscode.workspace.fs.readFile(historical ? getReviewRoundUri(reviewUri, selectedRoundId) : reviewUri);
 		const rawContent = Buffer.from(bytes).toString('utf8');
 		if (reviewName.toLowerCase().endsWith('.diff')) {
-			const diffReview = await buildDiffReview(reviewName, reviewUri, rawContent);
-			activeDiffReview = { reviewName, reviewUri, files: diffReview.files };
+			const diffReview = await buildDiffReview(reviewName, reviewUri, rawContent, historical ? state?.rounds?.find(round => round.id === selectedRoundId)?.changes : undefined, historical ? selectedRoundId : undefined);
+			const currentState = historical ? state : await readDiffReviewState(reviewName, reviewUri);
+			if (!historical) { activeDiffReview = { reviewName, reviewUri, files: diffReview.files, comments: currentState?.comments ?? [], latestRoundId: latestRoundId ?? 1 }; }
 			refreshReviewDecorations();
 			reviewCodeLensProvider?.refresh();
 			void panel.webview.postMessage({
@@ -971,6 +1136,11 @@ async function readReviewAndSend(
 				reviewName,
 				rawContent,
 				diffFiles: diffReview.files,
+				rounds: state?.rounds ?? [],
+				comments: currentState?.comments ?? [],
+				selectedRoundId: historical ? selectedRoundId : latestRoundId,
+				latestRoundId,
+				completedAt: state?.completedAt,
 				statePath: getReviewStateFileName(reviewName),
 			});
 			return;
@@ -985,15 +1155,94 @@ async function buildDiffReview(
 	reviewName: string,
 	reviewUri: vscode.Uri,
 	rawContent: string,
+	statusOverride?: Record<string, ReviewStatus>,
+	roundId?: number,
 ): Promise<{ files: DiffReviewFile[] }> {
 	const state = await readDiffReviewState(reviewName, reviewUri);
+	if (!statusOverride) {
+		await ensureReviewQueue(state, reviewUri, rawContent);
+		return { files: reviewQueueFiles((state.queue ?? []).map(change => ({ ...change, status: state.changes[change.id] ?? change.status }))) };
+	}
 	const files = parseUnifiedDiff(rawContent);
 	for (const file of files) {
 		for (const change of file.changes) {
-			change.status = state.changes[change.id] ?? 'pending';
+			const stableId = state.queue?.find(item => item.aliases?.some(alias => alias.changeId === change.id && alias.roundId === roundId))?.id;
+			change.status = statusOverride?.[change.id] ?? (stableId ? statusOverride?.[stableId] : undefined) ?? 'pending';
 		}
 	}
 	return { files };
+}
+
+async function ensureReviewQueue(state: DiffReviewState, reviewUri: vscode.Uri, currentDiff?: string): Promise<void> {
+	if (state.queue) { return; }
+	let queue: DiffReviewChange[] = [];
+	for (const round of state.rounds ?? []) {
+		try {
+			const bytes = await vscode.workspace.fs.readFile(getReviewRoundUri(reviewUri, round.id));
+			queue = mergeReviewQueue(queue, parseUnifiedDiff(Buffer.from(bytes).toString('utf8')), round.id);
+			for (const change of queue) {
+				const alias = change.aliases?.find(entry => entry.roundId === round.id);
+				const status = round.changes[change.id] ?? (alias ? round.changes[alias.changeId] : undefined);
+				if (status) { change.status = status; }
+			}
+		} catch { /* A missing historical snapshot cannot contribute to the queue. */ }
+	}
+	if (queue.length === 0 && currentDiff) {
+		queue = mergeReviewQueue([], parseUnifiedDiff(currentDiff), state.rounds?.at(-1)?.id ?? 1);
+	}
+	for (const change of queue) {
+		const latestAlias = change.aliases?.at(-1);
+		change.status = state.changes[change.id] ?? (latestAlias ? state.changes[latestAlias.changeId] : undefined) ?? change.status;
+	}
+	for (const comment of state.comments ?? []) {
+		const change = queue.find(entry => entry.filePath === comment.filePath && entry.aliases?.some(alias => alias.roundId === comment.roundId && alias.changeId === comment.changeId));
+		if (change && comment.changeId !== change.id) {
+			comment.originalChangeId = comment.changeId;
+			comment.changeId = change.id;
+		}
+	}
+	state.queue = queue;
+	state.changes = Object.fromEntries(queue.map(change => [change.id, change.status]));
+	if (queue.some(change => change.status === 'pending') || state.comments?.some(comment => comment.status === 'open')) {
+		state.completedAt = undefined;
+	}
+	await writeDiffReviewState(reviewUri, state);
+	if (state.comments?.length) { await writeReviewFeedback(reviewUri, state); }
+}
+
+export function mergeReviewQueue(queue: DiffReviewChange[], incomingFiles: DiffReviewFile[], roundId: number): DiffReviewChange[] {
+	const merged = queue.map(change => ({ ...change, aliases: [...(change.aliases ?? [])] }));
+	const used = new Set<string>();
+	for (const file of incomingFiles) {
+		for (const change of file.changes) {
+			const candidates = merged.filter(entry => entry.filePath === file.path && !used.has(entry.id));
+			const scored = candidates.map(entry => ({ entry, score: reviewHunkMatchScore(entry, change) })).sort((a, b) => b.score - a.score);
+			const match = scored[0]?.score > 0 ? scored[0].entry : undefined;
+			if (match) {
+				used.add(match.id);
+				Object.assign(match, { ...change, id: match.id, sourceRoundId: match.sourceRoundId ?? roundId, aliases: [...(match.aliases ?? []), { roundId, changeId: change.id }], status: 'pending' });
+			} else {
+				const id = `r${roundId}:${change.id}`;
+				merged.push({ ...change, id, sourceRoundId: roundId, aliases: [{ roundId, changeId: change.id }] });
+				used.add(id);
+			}
+		}
+	}
+	return merged;
+}
+
+function reviewHunkMatchScore(previous: DiffReviewChange, incoming: DiffReviewChange): number {
+	const distance = Math.abs(previous.startLine - incoming.startLine);
+	const previousLines = new Set(previous.newLines.map(line => line.trim()).filter(Boolean));
+	const overlap = incoming.oldLines.map(line => line.trim()).filter(line => previousLines.has(line)).length;
+	if (overlap > 0 && distance <= 100) { return overlap * 100 - distance; }
+	return distance <= 2 && (incoming.oldLines.length === 0 || previous.newLines.length === 0) ? 3 - distance : 0;
+}
+
+function reviewQueueFiles(queue: DiffReviewChange[]): DiffReviewFile[] {
+	const files: DiffReviewFile[] = [];
+	for (const change of queue) { getOrCreateDiffFile(files, change.filePath).changes.push(change); }
+	return files;
 }
 
 function parseUnifiedDiff(rawContent: string): DiffReviewFile[] {
@@ -1031,6 +1280,8 @@ function parseUnifiedDiff(rawContent: string): DiffReviewFile[] {
 		const newCount = hunkMatch[3] ? Number(hunkMatch[3]) : 1;
 		const oldLines: string[] = [];
 		const newLines: string[] = [];
+		const removedLines: string[] = [];
+		const addedLines: string[] = [];
 		while (index + 1 < lines.length) {
 			const bodyLine = lines[index + 1];
 			if (
@@ -1049,8 +1300,10 @@ function parseUnifiedDiff(rawContent: string): DiffReviewFile[] {
 			const value = bodyLine.slice(1);
 			if (prefix === '+') {
 				newLines.push(value);
+				addedLines.push(value);
 			} else if (prefix === '-') {
 				oldLines.push(value);
+				removedLines.push(value);
 			} else if (prefix === ' ') {
 				oldLines.push(value);
 				newLines.push(value);
@@ -1067,6 +1320,8 @@ function parseUnifiedDiff(rawContent: string): DiffReviewFile[] {
 			endLine,
 			oldLines,
 			newLines,
+			removedLines,
+			addedLines,
 			status: 'pending',
 		});
 	}
@@ -1115,8 +1370,103 @@ function getReviewStateUri(reviewUri: vscode.Uri): vscode.Uri {
 	return reviewUri.with({ path: `${reviewUri.path}.state.json` });
 }
 
+function getReviewRoundUri(reviewUri: vscode.Uri, roundId: number): vscode.Uri {
+	return vscode.Uri.joinPath(reviewUri, '..', '.rounds', path.basename(reviewUri.fsPath), `${roundId}.diff`);
+}
+
 function getReviewStateFileName(reviewName: string): string {
 	return `${reviewName}.state.json`;
+}
+
+async function promptForReviewComment(reviewName: string, reviewUri: vscode.Uri, filePath: string, changeId: string): Promise<void> {
+	const value = await vscode.window.showInputBox({
+		title: `Comment on ${filePath}`,
+		prompt: 'What should the agent change? The comment will be saved in the review feedback file.',
+		placeHolder: 'Describe the change you want',
+		ignoreFocusOut: true,
+		validateInput: text => text.trim() ? undefined : 'Enter a comment.',
+	});
+	if (value?.trim()) { await addReviewComment(reviewName, reviewUri, filePath, changeId, value.trim()); }
+}
+
+async function promptForActiveDiffComment(changeId: string): Promise<void> {
+	const review = activeDiffReview;
+	const change = findActiveDiffChange(changeId);
+	if (!review || !change) { return; }
+	await promptForReviewComment(review.reviewName, review.reviewUri, change.filePath, change.id);
+	await refreshActiveDiffReviewPanel();
+}
+
+async function openActiveReviewFeedback(): Promise<void> {
+	const review = activeDiffReview;
+	if (!review) { return; }
+	const state = await readDiffReviewState(review.reviewName, review.reviewUri);
+	await writeReviewFeedback(review.reviewUri, state);
+	const document = await vscode.workspace.openTextDocument(getReviewFeedbackUri(review.reviewUri));
+	await vscode.window.showTextDocument(document, { preview: false });
+}
+
+async function addReviewComment(reviewName: string, reviewUri: vscode.Uri, filePath: string, changeId: string, commentText: string): Promise<void> {
+	const state = await readDiffReviewState(reviewName, reviewUri);
+	const roundId = state.rounds?.at(-1)?.id ?? 1;
+	const originalChangeId = state.queue?.find(change => change.id === changeId)?.aliases?.filter(alias => alias.roundId === roundId).at(-1)?.changeId;
+	state.comments ??= [];
+	state.comments.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, roundId, filePath, changeId, originalChangeId, text: commentText, createdAt: new Date().toISOString(), status: 'open' });
+	await writeDiffReviewState(reviewUri, state);
+	await writeReviewFeedback(reviewUri, state);
+}
+
+async function setReviewCommentStatus(reviewName: string, reviewUri: vscode.Uri, commentId: string, status: 'open' | 'resolved'): Promise<void> {
+	const state = await readDiffReviewState(reviewName, reviewUri);
+	const comment = state.comments?.find(entry => entry.id === commentId);
+	if (!comment) { return; }
+	comment.status = status;
+	await writeDiffReviewState(reviewUri, state);
+	await writeReviewFeedback(reviewUri, state);
+}
+
+function getReviewFeedbackUri(reviewUri: vscode.Uri): vscode.Uri {
+	return reviewUri.with({ path: reviewUri.path.replace(/\.diff$/i, '.feedback.md') });
+}
+
+async function writeReviewFeedback(reviewUri: vscode.Uri, state: DiffReviewState): Promise<void> {
+	const comments = state.comments ?? [];
+	const lines = [
+		`# Review feedback: ${state.reviewName}`,
+		'',
+		`Review: ${state.reviewName}`,
+		'',
+		'## Open comments',
+		'',
+	];
+	const open = comments.filter(comment => comment.status !== 'resolved');
+	if (open.length === 0) { lines.push('No open comments.'); }
+	for (const comment of open) {
+		lines.push(`- Round ${comment.roundId} · ${comment.filePath} · ${comment.changeId}: ${comment.text.replace(/\s+/g, ' ')}`);
+	}
+	lines.push('', '## Resolved comments', '');
+	const resolved = comments.filter(comment => comment.status === 'resolved');
+	if (resolved.length === 0) { lines.push('None.'); }
+	for (const comment of resolved) {
+		lines.push(`- Round ${comment.roundId} · ${comment.filePath} · ${comment.changeId}: ${comment.text.replace(/\s+/g, ' ')}`);
+	}
+	lines.push('');
+	await vscode.workspace.fs.writeFile(getReviewFeedbackUri(reviewUri), Buffer.from(lines.join('\n'), 'utf8'));
+}
+
+async function copyReviewRequest(reviewName: string, reviewUri: vscode.Uri): Promise<void> {
+	const state = await readDiffReviewState(reviewName, reviewUri);
+	const comments = (state.comments ?? []).filter(comment => comment.status === 'open');
+	if (!comments.length) {
+		void vscode.window.showInformationMessage('Add an open review comment before requesting changes.');
+		return;
+	}
+	await writeReviewFeedback(reviewUri, state);
+	const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+	const feedbackUri = getReviewFeedbackUri(reviewUri);
+	const feedbackPath = workspaceFolder ? path.relative(workspaceFolder.uri.fsPath, feedbackUri.fsPath) : feedbackUri.fsPath;
+	await vscode.env.clipboard.writeText(`Read ${feedbackPath} and address all open DOV review comments. You may delegate independent changes to subagents. Verify the changes, then capture the next +review round using the same review name, ${reviewName}.`);
+	void vscode.window.showInformationMessage(`Copied an agent request for ${feedbackPath}.`);
 }
 
 async function setActiveDiffChangeStatus(changeId: string, status: ReviewStatus): Promise<void> {
@@ -1261,7 +1611,7 @@ function refreshReviewDecorations(): void {
 }
 
 function applyDiffReviewDecorations(editor: vscode.TextEditor, file: DiffReviewFile | undefined): void {
-	if (!pendingReviewDecorationType || !approvedReviewDecorationType || !rejectedReviewDecorationType) {
+	if (!pendingReviewDecorationType || !approvedReviewDecorationType || !rejectedReviewDecorationType || !commentReviewDecorationType) {
 		return;
 	}
 	const optionsByStatus: Record<ReviewStatus, vscode.DecorationOptions[]> = {
@@ -1269,8 +1619,25 @@ function applyDiffReviewDecorations(editor: vscode.TextEditor, file: DiffReviewF
 		approved: [],
 		rejected: [],
 	};
+	const commentDecorations: vscode.DecorationOptions[] = [];
 
 	for (const change of file?.changes ?? []) {
+		const comments = (activeDiffReview?.comments ?? []).filter(comment => comment.filePath === file?.path && comment.changeId === change.id);
+		if (comments.length > 0 && editor.document.lineCount > 0) {
+			const line = Math.min(editor.document.lineCount - 1, Math.max(0, change.startLine - 1));
+			const end = editor.document.lineAt(line).range.end;
+			const hover = new vscode.MarkdownString();
+			hover.appendMarkdown('**DOV review comments**');
+			for (const comment of comments) {
+				hover.appendMarkdown(`\n\n**${comment.status}**: `);
+				hover.appendText(comment.text);
+			}
+			commentDecorations.push({
+				range: new vscode.Range(end, end),
+				hoverMessage: hover,
+				renderOptions: { after: { contentText: `  ◌ ${comments.length} review comment${comments.length === 1 ? '' : 's'}`, color: new vscode.ThemeColor('editorCodeLens.foreground'), fontStyle: 'italic' } },
+			});
+		}
 		if (change.status !== 'pending') {
 			continue;
 		}
@@ -1284,6 +1651,7 @@ function applyDiffReviewDecorations(editor: vscode.TextEditor, file: DiffReviewF
 	editor.setDecorations(pendingReviewDecorationType, optionsByStatus.pending);
 	editor.setDecorations(approvedReviewDecorationType, optionsByStatus.approved);
 	editor.setDecorations(rejectedReviewDecorationType, optionsByStatus.rejected);
+	editor.setDecorations(commentReviewDecorationType, commentDecorations);
 }
 
 function getDiffReviewHover(change: DiffReviewChange): vscode.MarkdownString {
@@ -1331,17 +1699,7 @@ async function focusReviewFile(
 	}
 
 	if (reviewUri.fsPath.toLowerCase().endsWith('.diff')) {
-		const file = activeDiffReview?.files.find((entry) => entry.path === filePath);
-		const fileUri = vscode.Uri.joinPath(workspaceFolder.uri, filePath);
-		const doc = await vscode.workspace.openTextDocument(fileUri);
-		const editor = await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
-		applyDiffReviewDecorations(editor, file);
-		const change = changeId ? file?.changes.find((entry) => entry.id === changeId) : file?.changes[0];
-		if (change) {
-			const range = getDiffChangeRange(doc, change);
-			editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
-			editor.selection = new vscode.Selection(range.start, range.start);
-		}
+		await openDiffReviewForFile(filePath, changeId);
 		return;
 	}
 
@@ -1559,8 +1917,15 @@ class ReviewCodeLensProvider implements vscode.CodeLensProvider {
 
 		const lenses: vscode.CodeLens[] = [];
 		const fileRange = new vscode.Range(0, 0, 0, 0);
+		const earlierComments = activeDiffReview.comments.filter(comment => comment.filePath === file.path && comment.status !== 'resolved' && !file.changes.some(change => change.id === comment.changeId));
+		if (earlierComments.length > 0) {
+			lenses.push(new vscode.CodeLens(fileRange, {
+				title: `$(comment) ${earlierComments.length} open comment${earlierComments.length === 1 ? '' : 's'} from earlier rounds`,
+				command: 'document-oriented-vibing.openReviewFeedback',
+			}));
+		}
 		lenses.push(new vscode.CodeLens(fileRange, {
-			title: '$(diff) Open PR Diff',
+			title: '$(diff) Open Review Diff',
 			command: 'document-oriented-vibing.openDiffReviewFile',
 			arguments: [file.path],
 		}));
@@ -1596,6 +1961,19 @@ class ReviewCodeLensProvider implements vscode.CodeLensProvider {
 					command: 'document-oriented-vibing.rejectDiffChange',
 					arguments: [change.id],
 				}));
+				lenses.push(new vscode.CodeLens(range, {
+					title: '$(comment) Comment',
+					command: 'document-oriented-vibing.commentDiffChange',
+					arguments: [change.id],
+				}));
+			}
+			for (const comment of activeDiffReview.comments.filter(entry => entry.filePath === file.path && entry.changeId === change.id)) {
+				const summary = comment.text.replace(/\s+/g, ' ').slice(0, 90);
+				lenses.push(new vscode.CodeLens(range, {
+					title: `$(comment) ${comment.status}: ${summary}${comment.text.length > 90 ? '…' : ''}`,
+					tooltip: comment.text,
+					command: 'document-oriented-vibing.openReviewFeedback',
+				}));
 			}
 		}
 
@@ -1621,7 +1999,7 @@ class DiffReviewBaseContentProvider implements vscode.TextDocumentContentProvide
 	}
 }
 
-async function openDiffReviewForFile(filePath: string): Promise<void> {
+async function openDiffReviewForFile(filePath: string, changeId?: string): Promise<void> {
 	if (!activeDiffReview) {
 		return;
 	}
@@ -1645,8 +2023,15 @@ async function openDiffReviewForFile(filePath: string): Promise<void> {
 		beforeUri,
 		afterUri,
 		`DOV Review: ${filePath}`,
-		{ preview: false },
+		{ preview: false, viewColumn: vscode.ViewColumn.Beside },
 	);
+	const change = changeId ? file.changes.find((entry) => entry.id === changeId) : file.changes[0];
+	const editor = vscode.window.visibleTextEditors.find((entry) => entry.document.uri.toString() === afterUri.toString());
+	if (change && editor) {
+		const range = getDiffChangeRange(editor.document, change);
+		editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+		editor.selection = new vscode.Selection(range.start, range.start);
+	}
 }
 
 async function buildDiffReviewBaseContent(filePath: string): Promise<string> {
@@ -1654,17 +2039,20 @@ async function buildDiffReviewBaseContent(filePath: string): Promise<string> {
 	if (!workspaceFolder) {
 		return '';
 	}
+	const fileUri = vscode.Uri.joinPath(workspaceFolder.uri, filePath);
 	const file = activeDiffReview?.files.find((entry) => entry.path === filePath);
 	if (!file) {
-		return '';
+		return readTextFileIfExists(fileUri);
 	}
-	const fileUri = vscode.Uri.joinPath(workspaceFolder.uri, filePath);
 	const bytes = await vscode.workspace.fs.readFile(fileUri);
 	const currentContent = Buffer.from(bytes).toString('utf8');
 	const hasTrailingNewline = currentContent.endsWith('\n');
 	const lines = splitTextLines(currentContent);
 
 	for (const change of [...file.changes].sort((a, b) => b.startLine - a.startLine)) {
+		if (change.status !== 'pending') {
+			continue;
+		}
 		const newStartIndex = findLineSequence(lines, change.newLines, Math.max(0, change.startLine - 1));
 		if (newStartIndex >= 0 || change.newLines.length === 0) {
 			const replacementStart = change.newLines.length > 0 ? newStartIndex : Math.max(0, change.startLine - 1);

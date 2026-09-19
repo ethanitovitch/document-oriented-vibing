@@ -1,0 +1,41 @@
+diff --git a/src/webview/review/App.jsx b/src/webview/review/App.jsx
+--- a/src/webview/review/App.jsx
++++ b/src/webview/review/App.jsx
+@@ -221 +221,2 @@
+-		const allReviewed = diffFiles.length > 0 && diffTotals.pending === 0;
++		const allReviewed = diffFiles.length > 0 && diffTotals.pending === 0 && openComments.length === 0;
++		const feedbackPending = diffFiles.length > 0 && diffTotals.pending === 0 && openComments.length > 0;
+@@ -301 +302 @@
+-									{diffFiles.length} files · {diffTotals.pending} pending · {diffTotals.approved} approved · {diffTotals.rejected} rejected
++									{diffFiles.length} files · {diffTotals.pending} pending · {diffTotals.approved} approved · {diffTotals.rejected} rejected · {openComments.length} open comments
+@@ -319,2 +320,2 @@
+-									style={dangerButtonStyle(diffTotals.pending > 0)}
+-									disabled={diffTotals.pending > 0}
++									style={dangerButtonStyle(diffTotals.pending > 0 || openComments.length > 0)}
++									disabled={diffTotals.pending > 0 || openComments.length > 0}
+@@ -358,0 +360 @@
++						{feedbackPending && <div style={feedbackBannerStyle()}>All hunks reviewed · {openComments.length} comment{openComments.length === 1 ? '' : 's'} still need changes</div>}
+@@ -1171,0 +1174,9 @@
++function feedbackBannerStyle() {
++	return {
++		...completeBannerStyle(),
++		border: `1px solid ${palette.warn}`,
++		background: 'var(--vscode-inputValidation-warningBackground, var(--vscode-editor-background))',
++		color: 'var(--vscode-inputValidation-warningForeground, var(--vscode-editor-foreground))',
++	};
++}
++
+
+diff --git a/src/extension.ts b/src/extension.ts
+--- a/src/extension.ts
++++ b/src/extension.ts
+@@ -1034,0 +1035,9 @@
++	if (reviewName.endsWith('.diff')) {
++		const state = await readDiffReviewState(reviewName, reviewUri);
++		const openCommentCount = (state.comments ?? []).filter(comment => comment.status === 'open').length;
++		if (openCommentCount > 0) {
++			void vscode.window.showWarningMessage(`Review still has ${openCommentCount} open comment${openCommentCount === 1 ? '' : 's'}. Request changes or resolve them before completing.`);
++			await readReviewAndSend(panel, reviewName, reviewUri);
++			return;
++		}
++	}

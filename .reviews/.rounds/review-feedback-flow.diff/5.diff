@@ -1,0 +1,11 @@
+diff --git a/src/webview/review/App.jsx b/src/webview/review/App.jsx
+--- a/src/webview/review/App.jsx
++++ b/src/webview/review/App.jsx
+@@ -408,0 +409,4 @@
++										const lastTouchedRound = change.aliases?.at(-1)?.roundId || change.sourceRoundId;
++										const roundLabel = lastTouchedRound === latestRoundId
++											? change.sourceRoundId === latestRoundId ? 'New this round' : 'Updated this round'
++											: lastTouchedRound ? `Carried from round ${lastTouchedRound}` : '';
+@@ -424 +428 @@
+-													{change.title || 'Changed hunk'}
++													{change.title || 'Changed hunk'}{roundLabel && <span style={{ color: palette.muted, marginLeft: 8 }}>· {roundLabel}</span>}
